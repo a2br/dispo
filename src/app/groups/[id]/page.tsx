@@ -132,7 +132,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
 
       <section className="space-y-2">
         <h2 className={sectionTitle}>Settings</h2>
-        <div className={`${card} p-4 space-y-4`}>
+        <div className={`${card} p-4 space-y-2`}>
           <form action={renameGroupAction} className="flex gap-2">
             <input type="hidden" name="groupId" value={g.id} />
             <input name="name" required maxLength={60} defaultValue={g.name} aria-label="Group name" autoComplete="off" data-1p-ignore data-lpignore="true" className={input("sm", "flex-1 w-auto min-w-0")} />
