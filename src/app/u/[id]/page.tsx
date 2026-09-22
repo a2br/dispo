@@ -10,11 +10,16 @@ import { mergeBlocks } from "@/lib/blocks";
 import { sharedCourses } from "@/lib/classmates";
 import { features } from "@/lib/features";
 import { CourseChips } from "@/components/CourseChips";
-import { addDays, dayStartOf, relativeAge, todayIndexInWeek, weekStartFromParam, nowMs } from "@/lib/time";
+import { addDays, dayStartOf, isoDate, relativeAge, todayIndexInWeek, weekStartFromParam, weekStartOf, nowMs } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
 import { ConnectButton } from "@/components/ConnectButton";
 import { StatusPill } from "@/components/StatusPill";
 import { WeekView } from "@/components/WeekView";
+import { WeekNav } from "@/components/WeekNav";
+import { ReachLinks } from "@/components/ReachLinks";
+import { StarButton } from "@/components/StarButton";
+import { starsOf } from "@/lib/stars";
+import { button } from "@/lib/ui";
 
 export async function generateMetadata({ params }: PageProps<"/u/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -48,26 +53,38 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
     ? await Promise.all([eventsBetween(target.id, weekStart, weekEnd), eventsBetween(target.id, dayStartOf(now), dayStartOf(now) + 86_400_000)])
     : [[], []];
   const status = cal ? statusFrom(todayEvents, now) : ({ state: "unknown" } as const);
-  const isSelf = rel.kind === "self";
+  const isSelf = false; // your own page redirects to /calendar above
   const overlap = features.classmates && !isSelf && cal ? await sharedCourses(viewer.id, target.id) : null;
 
+  const first = target.name.split(" ")[0];
+  const starred = (await starsOf(viewer.id)).users.has(target.id);
+  const sharesCourse = Boolean(overlap && overlap.shared.length > 0);
+  const showPhone = Boolean(target.phone) && (rel.kind === "accepted" || (target.discoverable && viewer.discoverable && sharesCourse));
+
+  // Same full-height layout as Calendar: the week fits the screen without page scrolling.
   return (
-    <main className="mx-auto max-w-5xl py-6 md:py-10 space-y-5">
-      <header className="flex flex-wrap items-start gap-3">
-        <Avatar name={target.name} image={target.image} size={52} />
+    <main className="mx-auto max-w-5xl flex flex-col h-[calc(100dvh-var(--nav-h))] py-4 md:py-8 gap-3">
+      <header className="flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0">
+        <Avatar name={target.name} image={target.image} size={44} />
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold tracking-tight truncate">{isSelf ? "My week" : target.name}</h1>
-          <StatusPill status={statusView(status, access)} big />
-          {isSelf && <p className="text-xs text-muted mt-0.5 truncate">{target.email}</p>}
+          <h1 className="text-xl font-bold tracking-tight truncate">{target.name}</h1>
+          <StatusPill status={statusView(status, access)} />
+          {showPhone && target.phone && <ReachLinks phone={target.phone} />}
         </div>
-        <div className="ml-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
+          {cal && (
+            <Link href={`/calendar?with=${target.id}`} className={button("secondary")} title={`Find a time with ${first}`}>
+              Compare
+            </Link>
+          )}
           <ConnectButton userId={target.id} rel={rel} />
+          <StarButton kind="user" id={target.id} starred={starred} name={target.name} />
         </div>
       </header>
 
       {overlap && overlap.mine.length > 0 && (
-        <div className="rounded-2xl bg-surface border border-line px-4 py-3 text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="font-medium">
+        <div className="shrink-0 border border-line px-3 py-2 text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="font-bold">
             {overlap.shared.length === 0
               ? "No courses in common with you."
               : `Shares ${overlap.shared.length} of your ${overlap.mine.length} course${overlap.mine.length === 1 ? "" : "s"}`}
@@ -76,39 +93,27 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
         </div>
       )}
 
-      {!isSelf && cal && (
-        <Link href={`/calendar?with=${target.id}`} className="flex items-center justify-between rounded-2xl bg-surface border border-line px-4 py-3 text-sm active:opacity-70">
-          <span className="font-medium">Find a time with {target.name.split(" ")[0]}</span>
-          <span className="text-accent">Open in calendar ›</span>
-        </Link>
-      )}
-
       {!cal ? (
-        <div className="rounded-2xl bg-surface border border-line px-4 py-10 text-center space-y-3">
-          <p className="text-muted">{isSelf ? "You haven’t added your schedule yet." : `${target.name.split(" ")[0]} hasn’t added a schedule yet.`}</p>
-          {isSelf && (
-            <Link href="/setup" className="inline-block rounded-full bg-accent text-white px-5 py-2.5 font-semibold">
-              Add my schedule
-            </Link>
-          )}
+        <div className="border border-line px-4 py-10 text-center">
+          <p className="text-muted">{first} hasn’t added a schedule yet.</p>
         </div>
       ) : (
-        <WeekView
-          weekStart={weekStart}
-          events={access === "full" ? weekEvents.map(eventView) : busyViews(mergeBlocks(weekEvents))}
-          todayIndex={todayIndexInWeek(weekStart, now)}
-          now={now}
-          basePath={`/u/${target.id}`}
-          masked={access === "busy"}
-        />
-      )}
-
-      {cal && (
-        <p className="text-[11px] text-muted text-center">
-          Synced {relativeAge(cal.lastOkAt, now)}
-          {cal.lastError ? " · last refresh failed" : ""}
-          {isSelf ? " · manage in Settings" : ""}
-        </p>
+        <>
+          <div className="flex justify-end shrink-0">
+            <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={(w) => `/u/${target.id}?w=${isoDate(w)}`} />
+          </div>
+          <WeekView
+            weekStart={weekStart}
+            events={access === "full" ? weekEvents.map(eventView) : busyViews(mergeBlocks(weekEvents))}
+            todayIndex={todayIndexInWeek(weekStart, now)}
+            now={now}
+            masked={access === "busy"}
+          />
+          <p className="shrink-0 text-[11px] text-muted text-center">
+            Synced {relativeAge(cal.lastOkAt, now)}
+            {cal.lastError ? " · last refresh failed" : ""}
+          </p>
+        </>
       )}
     </main>
   );

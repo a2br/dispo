@@ -1,17 +1,18 @@
 "use client";
 
 import { useState } from "react";
+import { button } from "@/lib/ui";
 
 /**
  * Opens the phone's share sheet (or an email draft on desktop) with an invite written by the viewer.
  * Nothing is sent by the app itself.
  */
-export function InviteButton({ firstName, email }: { firstName: string; email: string }) {
+export function InviteButton({ firstName, email, inviteUrl }: { firstName: string; email: string; inviteUrl?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function invite() {
-    const url = window.location.origin;
-    const text = `Hey ${firstName}! I'm using dispo to see when friends are free between classes. Sign in with your EPFL account and paste your Campus calendar link once: ${url}`;
+    const url = inviteUrl ?? window.location.origin; // personal link: signing up connects them with you
+    const text = `Hey ${firstName}! I'm using dispo to see when friends are free between classes. Join through my link and we're connected straight away: ${url}`;
     if (typeof navigator.share === "function") {
       try {
         await navigator.share({ title: "Join me on dispo", text });
@@ -32,7 +33,7 @@ export function InviteButton({ firstName, email }: { firstName: string; email: s
   }
 
   return (
-    <button type="button" onClick={invite} className="rounded-full border border-accent text-accent px-3 py-1.5 text-sm font-semibold whitespace-nowrap active:opacity-70">
+    <button type="button" onClick={invite} className={button("secondary")}>
       {copied ? "Copied" : "Invite"}
     </button>
   );

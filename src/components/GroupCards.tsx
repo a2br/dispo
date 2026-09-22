@@ -1,34 +1,49 @@
 import Link from "next/link";
-import type { Status } from "@/lib/calendar";
 import type { GroupWithMembers } from "@/lib/groups";
+import type { Interval } from "@/lib/groupcalc";
+import { fmtDayShort, fmtTime, dayStartOf } from "@/lib/time";
 import { Avatar } from "./Avatar";
 
-/** One tap into a saved group's availability. Shows how many members are free right now. */
-export function GroupCards({ groups, statuses, you }: { groups: GroupWithMembers[]; statuses: Map<string, Status>; you: Status }) {
+type Next = (Interval & { now: boolean }) | null | undefined;
+
+function nextLabel(n: Next, now: number): { text: string; good: boolean } {
+  if (n === undefined) return { text: "", good: false };
+  if (n === null) return { text: "No common slot in the next 2 weeks", good: false };
+  if (n.now) return { text: `Everyone free now, until ${fmtTime(n.end)}`, good: true };
+  const today = dayStartOf(now);
+  const day = dayStartOf(n.start);
+  const when = day === today ? "Today" : day === today + 86_400_000 ? "Tomorrow" : fmtDayShort(n.start);
+  return { text: `Next all free: ${when} ${fmtTime(n.start)}–${fmtTime(n.end)}`, good: false };
+}
+
+/** One tap into a group's availability, with the next time everyone is free. */
+export function GroupCards({ groups, next, now, pinned }: { groups: GroupWithMembers[]; next: Map<string, Next>; now: number; pinned?: Set<string> }) {
   return (
     <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
       {groups.map((g) => {
-        const all = [you, ...g.members.map((m) => statuses.get(m.id) ?? ({ state: "unknown" } as const))];
-        const known = all.filter((s) => s.state !== "unknown");
-        const free = known.filter((s) => s.state === "free").length;
-        const everyone = known.length > 0 && free === known.length;
+        const label = nextLabel(next.get(g.id), now);
+        const href = g.members.length ? `/calendar?with=${g.members.map((m) => m.id).join(",")}` : g.inviteCode ? `/g/${g.inviteCode}` : "/calendar";
         return (
           <li key={g.id}>
-            <Link href={`/calendar?g=${g.id}`} className="flex items-center gap-3 rounded-2xl bg-surface border border-line px-4 py-3 active:opacity-70 hover:border-foreground/25 transition-colors">
-              <span className="flex -space-x-2 shrink-0">
+            <Link href={href} className="group flex items-center gap-3 border border-line bg-surface px-4 py-3 hover:border-foreground">
+              <span className="flex gap-1 shrink-0">
                 {g.members.slice(0, 3).map((m) => (
-                  <span key={m.id} className="rounded-full ring-2 ring-surface">
-                    <Avatar name={m.name} image={m.image} size={28} />
-                  </span>
+                  <Avatar key={m.id} name={m.name} image={m.image} size={28} />
                 ))}
-                {g.members.length > 3 && (
-                  <span className="size-7 rounded-full ring-2 ring-surface bg-line grid place-items-center text-[10px] font-semibold">+{g.members.length - 3}</span>
-                )}
+                {g.members.length > 3 && <span className="size-7 rounded-sm bg-subtle grid place-items-center text-[10px] font-bold">+{g.members.length - 3}</span>}
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block font-medium truncate">{g.name}</span>
-                <span className={`block text-sm ${everyone ? "text-free font-medium" : "text-muted"}`}>
-                  {g.members.length === 0 ? "No members yet" : everyone ? "Everyone free now" : `${free} of ${known.length} free now`}
+                <span className="flex items-center gap-2">
+                  <span className="font-bold truncate group-hover:text-accent-ink">{g.name}</span>
+                  {pinned?.has(g.id) && (
+                    <span className="text-accent text-xs shrink-0" aria-label="Pinned" title="Pinned">
+                      ★
+                    </span>
+                  )}
+                  {g.shared && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-muted border border-line px-1">shared</span>}
+                </span>
+                <span className={`block text-sm truncate ${label.good ? "text-free font-bold" : "text-muted"}`}>
+                  {g.members.length === 0 ? "Nobody has joined yet" : label.text}
                 </span>
               </span>
               <span aria-hidden className="text-muted">›</span>

@@ -37,7 +37,7 @@ async function discoverableUsers(viewer: User): Promise<User[]> {
     .from(schema.users)
     .innerJoin(schema.calendars, eq(schema.calendars.userId, schema.users.id))
     .where(ne(schema.users.id, viewer.id));
-  const users = rows.map((r) => r.u);
+  const users = rows.map((r) => r.u).filter((u) => u.discoverable);
   const privateIds = users.filter((u) => u.visibility === "private").map((u) => u.id);
   if (privateIds.length === 0) return users;
   const cs = await db
@@ -65,6 +65,7 @@ export type Classmate = { user: User; shared: Course[]; theirTotal: number };
  */
 export async function classmatesFor(viewer: User): Promise<{ mine: Course[]; classmates: Classmate[] }> {
   const mine = await myCourses(viewer.id);
+  if (!viewer.discoverable) return { mine, classmates: [] }; // opted out of Discover: neither seen nor seeing
   if (mine.length === 0) return { mine, classmates: [] };
   const users = await discoverableUsers(viewer);
   const courses = await coursesFor(users.map((u) => u.id));
@@ -89,6 +90,7 @@ export async function sharedCourses(viewerId: string, otherId: string): Promise<
 
 /** People visible to the viewer who take a given course, provided the viewer takes it too. */
 export async function peopleInCourse(viewer: User, key: string): Promise<{ course: Course; people: User[] } | null> {
+  if (!viewer.discoverable) return null;
   const mine = await myCourses(viewer.id);
   const course = mine.find((c) => c.key === key);
   if (!course) return null;

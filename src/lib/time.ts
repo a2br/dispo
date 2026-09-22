@@ -70,10 +70,10 @@ export function relativeAge(ms: number | null | undefined, now = Date.now()): st
   const s = Math.max(0, Math.round((now - ms) / 1000));
   if (s < 60) return "just now";
   const m = Math.round(s / 60);
-  if (m < 60) return `${m} min ago`;
+  if (m < 60) return `${m}m ago`;
   const h = Math.round(m / 60);
-  if (h < 48) return `${h} h ago`;
-  return `${Math.round(h / 24)} d ago`;
+  if (h < 48) return `${h}h ago`;
+  return `${Math.round(h / 24)}d ago`;
 }
 
 /** Current time in ms. Server components call this instead of Date.now() so the purity lint stays quiet about a deliberate read. */

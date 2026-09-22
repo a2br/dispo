@@ -1,14 +1,27 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens aligned with EPFL's visual identity (brand guidelines 2020 + the
+ * "Elements" web design system). Colours, Arial and the flat, square shape language
+ * are generic; the EPFL logo is deliberately not used.
+ */
 :root {
-  --background: #f6f6f4;
+  --background: #ffffff;
   --surface: #ffffff;
-  --foreground: #16181d;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --accent: #e2001a; /* EPFL red */
-  --free: #16a34a;
-  --busy: #dc2626;
+  --foreground: #212121; /* Elements $black */
+  --muted: #707070; /* Elements gray-600, passes AA */
+  --line: #e6e6e6; /* card borders */
+  --line-strong: #8e8e8e; /* inputs, secondary buttons */
+  --subtle: #f4f4f4; /* quiet fills: chips, hover */
+
+  --accent: #ff0000; /* EPFL rouge: fills and marks only (4.0:1 on white) */
+  --accent-dark: #b51f1f; /* groseille: hover */
+  --accent-ink: #b51f1f; /* red text */
+
+  --free: #007480; /* canard */
+  --busy: #b51f1f; /* groseille */
+  --warn: #f5a623; /* Elements warning */
+  --warn-ink: #8a5a00;
 }
 
 @theme inline {
@@ -17,22 +30,43 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-subtle: var(--subtle);
   --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-ink: var(--accent-ink);
   --color-free: var(--free);
   --color-busy: var(--busy);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-warn: var(--warn);
+  --color-warn-ink: var(--warn-ink);
+
+  /* EPFL: Suisse Int'l in print, Arial on the web (what epfl.ch itself serves). */
+  --font-sans: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Flat and square: 2px on controls, 0 on cards. */
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 0px;
 }
 
+/* EPFL defines no dark theme; this one is extrapolated from Elements' .bg-dark sections. */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0e0f12;
-    --surface: #17191e;
-    --foreground: #ececec;
-    --muted: #9ca3af;
-    --line: #2a2d34;
-    --free: #22c55e;
-    --busy: #f87171;
+    --background: #161616;
+    --surface: #212121;
+    --foreground: #f2f2f2;
+    --muted: #a3a3a3;
+    --line: #363636;
+    --line-strong: #707070;
+    --subtle: #2a2a2a;
+    --accent-dark: #d62020;
+    --accent-ink: #ff6b6b;
+    --free: #2ec4bb;
+    --busy: #ff6b6b;
+    --warn-ink: #f5c26b;
   }
 }
 
@@ -43,8 +77,86 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* Elements focus: 2px solid outline, offset 2px, no glow. */
+:focus-visible {
+  outline: 2px solid var(--muted);
+  outline-offset: 2px;
+}
+
+/* Elements links: body-coloured text, red underline, black underline on hover. */
+.link {
+  color: var(--foreground);
+  text-decoration-line: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: min(0.08em, 0.1rem);
+  text-underline-offset: 0.14em;
+}
+.link:hover {
+  text-decoration-color: var(--foreground);
+}
+.link:active {
+  color: var(--accent-ink);
+}
+
+/* Height reserved for the phone's bottom bar (0 once the sidebar takes over at md). */
+:root {
+  --nav-h: calc(4.25rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 48rem) {
+  :root {
+    --nav-h: 0px;
+  }
+}
+
+/* Motion: short and quiet. Colour changes ease on every control; new content fades up. */
+a,
+button,
+input,
+summary {
+  transition-property: color, background-color, border-color, opacity, box-shadow;
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-in {
+  animation: fade-up 180ms ease-out both;
+}
+.animate-fade {
+  animation: fade 220ms ease-out both;
+}
+main {
+  animation: fade 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 .safe-bottom {

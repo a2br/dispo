@@ -1,14 +1,29 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { db, dbReady, schema } from "@/db";
 import type { SavedGroup, User } from "@/db/schema";
 
 export const MAX_GROUP_MEMBERS = 11; // plus you = 12 columns in the grid
 
-export type GroupWithMembers = SavedGroup & { members: User[] };
+/** `members` is everyone in the group except the viewer (so it includes the owner for members). */
+export type GroupWithMembers = SavedGroup & { members: User[]; isOwner: boolean; shared: boolean };
 
-export async function listGroups(ownerId: string): Promise<GroupWithMembers[]> {
+/**
+ * Groups you own, plus shared groups (those with a share link) you've joined.
+ * Private groups without a link stay visible to their owner only.
+ */
+export async function listGroups(viewerId: string): Promise<GroupWithMembers[]> {
   await dbReady;
-  const groups = await db.select().from(schema.savedGroups).where(eq(schema.savedGroups.ownerId, ownerId)).orderBy(asc(schema.savedGroups.name));
+  const memberOf = await db.select({ id: schema.savedGroupMembers.groupId }).from(schema.savedGroupMembers).where(eq(schema.savedGroupMembers.userId, viewerId));
+  const joinedIds = memberOf.map((r) => r.id);
+  const groups = await db
+    .select()
+    .from(schema.savedGroups)
+    .where(
+      joinedIds.length
+        ? or(eq(schema.savedGroups.ownerId, viewerId), and(inArray(schema.savedGroups.id, joinedIds), isNotNull(schema.savedGroups.inviteCode)))
+        : eq(schema.savedGroups.ownerId, viewerId),
+    )
+    .orderBy(asc(schema.savedGroups.name));
   if (groups.length === 0) return [];
   const rows = await db
     .select({ groupId: schema.savedGroupMembers.groupId, u: schema.users })
@@ -16,7 +31,14 @@ export async function listGroups(ownerId: string): Promise<GroupWithMembers[]> {
     .innerJoin(schema.users, eq(schema.users.id, schema.savedGroupMembers.userId))
     .where(inArray(schema.savedGroupMembers.groupId, groups.map((g) => g.id)))
     .orderBy(asc(schema.users.name));
-  return groups.map((g) => ({ ...g, members: rows.filter((r) => r.groupId === g.id).map((r) => r.u) }));
+  const ownerIds = [...new Set(groups.map((g) => g.ownerId).filter((id) => id !== viewerId))];
+  const owners = ownerIds.length ? await db.select().from(schema.users).where(inArray(schema.users.id, ownerIds)) : [];
+  return groups.map((g) => {
+    const isOwner = g.ownerId === viewerId;
+    const members = rows.filter((r) => r.groupId === g.id && r.u.id !== viewerId).map((r) => r.u);
+    const owner = owners.find((o) => o.id === g.ownerId);
+    return { ...g, members: isOwner || !owner ? members : [owner, ...members], isOwner, shared: g.inviteCode != null };
+  });
 }
 
 export async function getGroup(ownerId: string, id: string): Promise<GroupWithMembers | null> {
@@ -33,7 +55,7 @@ export async function getGroup(ownerId: string, id: string): Promise<GroupWithMe
     .innerJoin(schema.users, eq(schema.users.id, schema.savedGroupMembers.userId))
     .where(eq(schema.savedGroupMembers.groupId, id))
     .orderBy(asc(schema.users.name));
-  return { ...g, members: rows.map((r) => r.u) };
+  return { ...g, members: rows.map((r) => r.u), isOwner: true, shared: g.inviteCode != null };
 }
 
 function cleanName(name: string): string {
@@ -47,7 +69,7 @@ function cleanIds(ownerId: string, ids: string[]): string[] {
 export async function createGroup(ownerId: string, name: string, memberIds: string[]): Promise<string> {
   await dbReady;
   const id = crypto.randomUUID();
-  await db.insert(schema.savedGroups).values({ id, ownerId, name: cleanName(name) || "Untitled group", createdAt: Date.now() });
+  await db.insert(schema.savedGroups).values({ id, ownerId, name: cleanName(name) || "Untitled group", inviteCode: null, createdAt: Date.now() });
   await setGroupMembers(ownerId, id, memberIds);
   return id;
 }

@@ -13,10 +13,13 @@ export function StatusPill({ status, big = false }: { status: StatusView; big?: 
         ? "text-busy"
         : "text-muted";
   return (
-    <div className={`flex items-center gap-x-2 flex-wrap min-w-0 ${big ? "text-base" : "text-sm"}`}>
-      <StatusDot state={status.state} />
-      <span className={`font-medium whitespace-nowrap ${tone}`}>{status.label}</span>
-      {status.detail && <span className="text-muted truncate max-w-full">· {status.detail}</span>}
+    <div className={`min-w-0 ${big ? "text-base" : "text-sm"}`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <StatusDot state={status.state} />
+        <span className={`font-medium truncate ${tone}`}>{status.label}</span>
+      </div>
+      {/* Detail sits on its own line (aligned with the label), so a wrap never starts with "·". */}
+      {status.detail && <div className="pl-[1.125rem] text-muted truncate">{status.detail}</div>}
     </div>
   );
 }

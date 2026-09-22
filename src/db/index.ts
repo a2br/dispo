@@ -9,6 +9,9 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL,
   image TEXT,
   visibility TEXT NOT NULL DEFAULT 'everyone',
+  discoverable INTEGER NOT NULL DEFAULT 1,
+  phone TEXT,
+  invite_code TEXT,
   created_at INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email);
@@ -47,6 +50,7 @@ CREATE TABLE IF NOT EXISTS saved_groups (
   id TEXT PRIMARY KEY,
   owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  invite_code TEXT,
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS saved_groups_owner_idx ON saved_groups(owner_id);
@@ -55,19 +59,49 @@ CREATE TABLE IF NOT EXISTS saved_group_members (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   PRIMARY KEY (group_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS stars (
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  kind TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, kind, target_id)
+);
 `;
+
+/** Additive column migrations for databases created before the column existed. */
+async function migrate(client: Client) {
+  const cols = await client.execute("PRAGMA table_info(users)");
+  const names = new Set(cols.rows.map((r) => String(r.name)));
+  if (!names.has("discoverable")) await client.execute("ALTER TABLE users ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 1");
+  if (!names.has("phone")) await client.execute("ALTER TABLE users ADD COLUMN phone TEXT");
+  if (!names.has("invite_code")) await client.execute("ALTER TABLE users ADD COLUMN invite_code TEXT");
+  const gcols = await client.execute("PRAGMA table_info(saved_groups)");
+  if (!gcols.rows.some((r) => String(r.name) === "invite_code")) await client.execute("ALTER TABLE saved_groups ADD COLUMN invite_code TEXT");
+  await client.execute(
+    "CREATE TABLE IF NOT EXISTS stars (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, target_id TEXT NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (user_id, kind, target_id))",
+  );
+  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_invite_code_idx ON users(invite_code)");
+  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS saved_groups_invite_code_idx ON saved_groups(invite_code)");
+}
 
 type G = typeof globalThis & { __dispoDb?: ReturnType<typeof build> };
 
 function build() {
   const url = process.env.DATABASE_URL ?? "file:./data/dispo.db";
   const client: Client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN || undefined });
-  const ready = client.executeMultiple(SCHEMA_SQL).then(() => client.execute("PRAGMA foreign_keys = ON"));
+  const ready: Promise<void> = client
+    .executeMultiple(SCHEMA_SQL)
+    .then(() => migrate(client))
+    .then(() => client.execute("PRAGMA foreign_keys = ON"))
+    .then(() => undefined);
   return { client, db: drizzle(client, { schema }), ready };
 }
 
 const g = globalThis as G;
-const inst = g.__dispoDb ?? (g.__dispoDb = build());
+const cached = g.__dispoDb;
+const inst = cached ?? (g.__dispoDb = build());
+// A dev-server reload reuses the cached client: still apply any new additive migrations.
+if (cached) inst.ready = inst.ready.then(() => migrate(inst.client));
 
 export const db = inst.db;
 export const dbReady = inst.ready;

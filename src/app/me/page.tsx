@@ -4,11 +4,14 @@ import { requireUser } from "@/lib/auth";
 import { getCalendar } from "@/lib/calendar";
 import { relativeAge, nowMs } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
+import { DiscoverToggle } from "@/components/DiscoverToggle";
+import { PhoneForm } from "@/components/PhoneForm";
+import { button } from "@/lib/ui";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
 import { refreshMyCalendar, removeMyCalendar, setVisibility, signOut } from "@/app/actions";
 import type { Visibility } from "@/db/schema";
 
-export const metadata: Metadata = { title: "Settings" };
+export const metadata: Metadata = { title: "Me" };
 
 const OPTIONS: { value: Visibility; title: string; desc: string }[] = [
   { value: "everyone", title: "Everyone at EPFL (default)", desc: "Anyone signed in sees your timetable, like a shared work calendar." },
@@ -44,11 +47,19 @@ export default async function MePage() {
             </label>
           ))}
           <div className="px-4 py-3">
-            <button type="submit" className="w-full rounded-xl bg-foreground text-background py-2.5 text-sm font-semibold active:opacity-80">
+            <button type="submit" className={button("dark", "md", "w-full")}>
               Save
             </button>
           </div>
         </form>
+      </section>
+
+      <section id="discover" className="space-y-2 scroll-mt-6">
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Discover</h2>
+        <div className="rounded-2xl bg-surface border border-line">
+          <DiscoverToggle on={user.discoverable} />
+          <PhoneForm phone={user.phone} />
+        </div>
       </section>
 
       <section className="space-y-2">
@@ -62,9 +73,9 @@ export default async function MePage() {
             </div>
             <div className="px-4 py-3 flex gap-2">
               <form action={refreshMyCalendar} className="flex-1">
-                <button className="w-full rounded-xl border border-line py-2.5 text-sm font-semibold active:opacity-70">Refresh now</button>
+                <button className={button("secondary", "md", "w-full")}>Refresh now</button>
               </form>
-              <Link href={`/u/${user.id}`} className="flex-1 rounded-xl border border-line py-2.5 text-sm font-semibold text-center active:opacity-70">
+              <Link href={`/u/${user.id}`} className={button("secondary", "md", "flex-1")}>
                 View my week
               </Link>
             </div>
@@ -75,7 +86,7 @@ export default async function MePage() {
               </div>
             </details>
             <form action={removeMyCalendar} className="px-4 py-3">
-              <button className="text-sm text-busy font-medium">Remove my schedule</button>
+              <button className={button("danger", "sm", "-ml-3")}>Remove my schedule</button>
             </form>
           </div>
         ) : (
@@ -87,7 +98,7 @@ export default async function MePage() {
       </section>
 
       <form action={signOut}>
-        <button className="w-full rounded-2xl border border-line py-3 text-sm font-semibold text-muted active:opacity-70">Sign out</button>
+        <button className={button("secondary", "md", "w-full text-muted")}>Sign out</button>
       </form>
     </main>
   );

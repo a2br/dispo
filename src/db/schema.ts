@@ -10,6 +10,12 @@ export const users = sqliteTable(
     name: text("name").notNull(),
     image: text("image"),
     visibility: text("visibility").$type<Visibility>().notNull().default("everyone"),
+    /** Opted in to Discover: appears to people who share courses, and sees them. */
+    discoverable: integer("discoverable", { mode: "boolean" }).notNull().default(true),
+    /** Optional, shown to classmates in Discover and to connections so they can reach you. */
+    phone: text("phone"),
+    /** Personal invite link code: /i/<code>. Created on first use. */
+    inviteCode: text("invite_code"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email)],
@@ -74,6 +80,8 @@ export const savedGroups = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** Set when the group has a share link (/g/<code>): members then see the group too. */
+    inviteCode: text("invite_code"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [index("saved_groups_owner_idx").on(t.ownerId)],
@@ -90,6 +98,20 @@ export const savedGroupMembers = sqliteTable(
       .references(() => users.id, { onDelete: "cascade" }),
   },
   (t) => [primaryKey({ columns: [t.groupId, t.userId] })],
+);
+
+/** Quick-access favourites: starred people and groups appear as chips in the calendar. */
+export const stars = sqliteTable(
+  "stars",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"user" | "group">().notNull(),
+    targetId: text("target_id").notNull(),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.kind, t.targetId] })],
 );
 
 export type User = typeof users.$inferSelect;

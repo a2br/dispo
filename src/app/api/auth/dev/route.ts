@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
-import { createSession, devLoginEnabled, isEpflEmail, upsertUserFromProfile } from "@/lib/auth";
+import { createSession, devLoginEnabled, isEpflEmail, safeNext, upsertUserFromProfile } from "@/lib/auth";
 import { getCalendar } from "@/lib/calendar";
 
 /** Local development only: /api/auth/dev?email=jane.doe@epfl.ch&name=Jane%20Doe */
@@ -11,5 +11,6 @@ export async function GET(req: NextRequest) {
   if (!isEpflEmail(email)) return new Response("email must be @epfl.ch", { status: 400 });
   const user = await upsertUserFromProfile({ email, name });
   await createSession(user.id);
-  redirect((await getCalendar(user.id)) ? "/" : "/setup");
+  const next = safeNext(req.nextUrl.searchParams.get("next"));
+  redirect(next ?? ((await getCalendar(user.id)) ? "/" : "/setup"));
 }

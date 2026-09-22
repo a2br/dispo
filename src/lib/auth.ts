@@ -24,6 +24,12 @@ export function isEpflEmail(email: string): boolean {
   return email.toLowerCase().endsWith(`@${EPFL_DOMAIN}`);
 }
 
+/** Only same-site paths are allowed as post-login destinations. */
+export function safeNext(next: string | null | undefined): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return null;
+  return next.slice(0, 300);
+}
+
 // ---------- session ----------
 
 export async function createSession(userId: string): Promise<void> {
@@ -90,6 +96,9 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
     name,
     image: p.image ?? null,
     visibility: "everyone",
+    discoverable: true,
+    phone: null,
+    inviteCode: null,
     createdAt: Date.now(),
   };
   await db.insert(schema.users).values(u);
@@ -115,12 +124,12 @@ function b64url(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64url");
 }
 
-export async function beginGoogleLogin(): Promise<string> {
+export async function beginGoogleLogin(next?: string | null): Promise<string> {
   const state = b64url(crypto.getRandomValues(new Uint8Array(16)));
   const nonce = b64url(crypto.getRandomValues(new Uint8Array(16)));
   const verifier = b64url(crypto.getRandomValues(new Uint8Array(32)));
   const challenge = b64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))));
-  (await cookies()).set(OAUTH_COOKIE, JSON.stringify({ state, nonce, verifier }), {
+  (await cookies()).set(OAUTH_COOKIE, JSON.stringify({ state, nonce, verifier, next: safeNext(next) }), {
     httpOnly: true,
     sameSite: "lax",
     secure: appUrl().startsWith("https://"),
@@ -144,12 +153,12 @@ export async function beginGoogleLogin(): Promise<string> {
 
 export class AuthError extends Error {}
 
-export async function finishGoogleLogin(code: string, state: string): Promise<User> {
+export async function finishGoogleLogin(code: string, state: string): Promise<{ user: User; next: string | null }> {
   const jar = await cookies();
   const raw = jar.get(OAUTH_COOKIE)?.value;
   jar.delete(OAUTH_COOKIE);
   if (!raw) throw new AuthError("Login expired, try again.");
-  const saved = JSON.parse(raw) as { state: string; nonce: string; verifier: string };
+  const saved = JSON.parse(raw) as { state: string; nonce: string; verifier: string; next?: string | null };
   if (saved.state !== state) throw new AuthError("State mismatch.");
 
   const res = await fetch(GOOGLE_TOKEN, {
@@ -179,9 +188,10 @@ export async function finishGoogleLogin(code: string, state: string): Promise<Us
   if (!verified || hd !== EPFL_DOMAIN || !isEpflEmail(email)) {
     throw new AuthError("Please sign in with your @epfl.ch Google account.");
   }
-  return upsertUserFromProfile({
+  const user = await upsertUserFromProfile({
     email,
     name: typeof payload.name === "string" ? payload.name : null,
     image: typeof payload.picture === "string" ? payload.picture : null,
   });
+  return { user, next: safeNext(saved.next) };
 }

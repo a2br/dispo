@@ -1,33 +1,43 @@
 import type { Metadata } from "next";
-import { requireUser } from "@/lib/auth";
+import { requireUser, safeNext } from "@/lib/auth";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
+import { ExternalLink } from "@/components/ExternalLink";
 
 export const metadata: Metadata = { title: "Add your schedule" };
 
-export default async function SetupPage() {
+/** One screen, no scrolling: three short steps, then a single paste button. */
+export default async function SetupPage({ searchParams }: PageProps<"/setup">) {
   await requireUser();
+  const sp = await searchParams;
+  const next = safeNext(typeof sp.next === "string" ? sp.next : null) ?? undefined;
+  const steps: React.ReactNode[] = [
+    <>
+      Open <b>EPFL Campus</b> → <b>Schedule</b> <span className="text-muted">(or <ExternalLink href="https://campus.epfl.ch">campus.epfl.ch</ExternalLink>)</span>
+    </>,
+    <>
+      Tap <b>⋯</b> → <b>Export</b> → <b>Copy link</b>
+    </>,
+    <>Come back and tap the button below</>,
+  ];
   return (
-    <main className="mx-auto max-w-2xl py-8 space-y-6">
-      <div>
+    <main className="mx-auto max-w-md min-h-[calc(100dvh-var(--nav-h))] flex flex-col justify-center py-6 gap-6">
+      <header className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Add your schedule</h1>
-        <p className="text-muted mt-1">One paste, and it stays in sync with IS-Academia automatically.</p>
-      </div>
+        <p className="text-muted">One paste. It stays in sync with IS-Academia on its own.</p>
+      </header>
 
-      <ol className="rounded-2xl bg-surface border border-line divide-y divide-line text-sm">
-        <li className="flex gap-3 px-4 py-3"><Step n={1} /> Open the <b>EPFL Campus</b> app and go to <b>Schedule</b>.</li>
-        <li className="flex gap-3 px-4 py-3"><Step n={2} /> Tap the <b>⋯ / Export</b> button and choose <b>Copy link</b> (the one you’d add to your phone’s calendar).</li>
-        <li className="flex gap-3 px-4 py-3"><Step n={3} /> Paste it below. IS-Academia’s own “Export iCalendar” link works too.</li>
+      <ol className="border border-line divide-y divide-line">
+        {steps.map((step, i) => (
+          <li key={i} className="flex items-start gap-3 px-3 py-2.5">
+            <span className="size-6 shrink-0 rounded-sm bg-foreground text-background grid place-items-center text-xs font-bold">{i + 1}</span>
+            <span className="leading-6">{step}</span>
+          </li>
+        ))}
       </ol>
 
-      <CalendarLinkForm />
+      <CalendarLinkForm next={next} />
 
-      <p className="text-xs text-muted">
-        The link contains a private key, so it’s stored encrypted and only used by the server to refresh your timetable. You can remove it anytime in Settings.
-      </p>
+      <p className="text-xs text-muted">The link contains a private key: it’s stored encrypted and only used to refresh your timetable. Remove it anytime in Me.</p>
     </main>
   );
-}
-
-function Step({ n }: { n: number }) {
-  return <span className="size-6 shrink-0 rounded-full bg-foreground text-background grid place-items-center text-xs font-semibold">{n}</span>;
 }

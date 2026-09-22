@@ -10,9 +10,10 @@ export async function GET(req: NextRequest) {
   if (err || !code || !state) redirect("/?error=" + encodeURIComponent(err ?? "Login cancelled."));
   let dest = "/";
   try {
-    const user = await finishGoogleLogin(code, state);
+    const { user, next } = await finishGoogleLogin(code, state);
     await createSession(user.id);
-    dest = (await getCalendar(user.id)) ? "/" : "/setup";
+    // Invite links finish their own flow (join, connect, then setup if needed).
+    dest = next ?? ((await getCalendar(user.id)) ? "/" : "/setup");
   } catch (e) {
     const msg = e instanceof AuthError ? e.message : "Sign-in failed.";
     if (!(e instanceof AuthError)) console.error("google callback", e);

@@ -1,15 +1,15 @@
 import Link from "next/link";
 import type { Course } from "@/lib/classmates";
-import { hueFor } from "@/lib/present";
+import { toneFor } from "@/lib/present";
 
 export function CourseChip({ course, link = true }: { course: Course; link?: boolean }) {
-  const h = hueFor(course.name);
-  const cls = "inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap";
-  const style = { background: `hsl(${h} 70% 92%)`, borderColor: `hsl(${h} 60% 75%)`, color: `hsl(${h} 45% 25%)` } as const;
+  const t = toneFor(course.name);
+  const cls = "inline-flex items-center rounded-sm border px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap";
+  const style = { background: t.bg, borderColor: t.border, color: t.text } as const;
   const label = course.code ?? course.name;
   if (!link) return <span className={cls} style={style} title={course.name}>{label}</span>;
   return (
-    <Link href={`/course/${encodeURIComponent(course.key)}`} className={`${cls} active:opacity-70`} style={style} title={course.name}>
+    <Link href={`/discover/${encodeURIComponent(course.key)}`} className={`${cls} active:opacity-70`} style={style} title={course.name}>
       {label}
     </Link>
   );

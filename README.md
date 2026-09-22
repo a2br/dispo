@@ -12,17 +12,71 @@ IS-Academia timetables, which live behind Gaspar and have no shared calendar ser
   Invite opens the share sheet or an email draft; the app never sends anything itself.
   People who hide their directory profile don't appear. Private dispo users are shown as
   "not on dispo" so their membership stays hidden.
-- Groups: save a selection of friends under a name and open its availability in one tap
-  from the home screen. Private to you; editing people while a group is open edits the group.
-- Find a time: pick several friends and see everyone's free/busy side by side for a day,
+- Groups: private shortcuts. Only you see them and nobody is notified. The calendar's state is
+  only who is in the view (`?with=`); a group chip is active exactly when the view holds its
+  people, however you got there. Rename/delete appear in the panel for the matching group;
+  "Save as group" appears when the view matches none. "Clear" empties the view.
+- Calendar: one place for your week and for comparing with others (like overlaying calendars
+  in Google Calendar). On its own it shows your week; add people or tap a saved group and it
+  switches to the side-by-side comparison. Pick several friends and see everyone's free/busy side by side for a day,
   plus the slots this week (08:00–19:00, 30 min or more) where you're all free. Shows only
   merged busy blocks, never course names.
-- Classmates (off by default, `FEATURE_CLASSMATES=1`): people ranked by shared courses and a
-  page per course. It's a discovery use case, separate from checking friends, so it lives
-  behind a switch and its own tab. Only courses in common are revealed.
+- Discover (`/discover`, a subscreen of Now with a back button): people you're not connected
+  to, ranked by shared courses, with Connect on each row, plus a per-course breakdown. People shows
+  a capped "Classmates" preview (5 people sharing 2+ courses) linking to it. Only courses in
+  common are revealed. Anyone can opt out in Me: they disappear from Discover and it's hidden for
+  them. An optional phone number (Me → Discover) is shown to classmates and connections.
+  `FEATURE_CLASSMATES=0` turns the whole feature off.
 
 Mobile-first PWA (add to home screen). On tablets and laptops the bottom bar becomes a
 sidebar, friends get a timeline of their day, and pages spread into columns.
+
+## Growth
+
+- Personal invite link `/i/<code>`: "Anatole invited you". Signing in through it connects you
+  with the inviter straight away, then setup, then their week.
+- Group link `/g/<code>`, made for group chats: anyone who signs in through it joins the group,
+  gets connected with everyone already in it, and lands in the group's calendar. Members see the
+  group page (who's in, share link, open calendar, leave). Groups without a link stay private.
+- Joining happens in `/i/<code>/accept` and `/g/<code>/join`, never on page view, so link
+  previews and prefetches can't join anyone. Sign-in carries a safe `next` path through OAuth.
+- Personalised titles, descriptions and Open Graph images for invite and group links (first
+  names only, since previews are public), plus a default card.
+- Directory search "Invite" and the home "Invite people" card use your personal link.
+
+## Home ("Now")
+
+What people open the app for: who can I see, and when? So it leads with your status, then one
+"Your people" list (pinned first, then free, then busy greyed out, then no schedule), then groups
+with the next time everyone is free. New accounts get a two-step checklist (add schedule, bring
+your people) instead. Search, Classmates and pending requests follow. Stars pin people and groups
+to the top of lists (home, and the calendar's "+ Add" panel); the calendar row itself stays clean.
+
+## Design
+
+Aligned with EPFL's visual identity (brand guidelines 2020 and the Elements web design
+system), without the EPFL logo for now:
+
+- Colours: rouge `#FF0000` for fills and marks only, groseille `#B51F1F` for red text and
+  hover, canard `#007480` for "free", body text `#212121`, muted `#707070`, borders `#E6E6E6`.
+  Course colours come from the brand palette (canard, léman, taupe, Elements info / warning /
+  success). Tokens live in `src/app/globals.css`.
+- Type: Arial, as on epfl.ch (Suisse Int'l is print-only and licensed). Bold for names and nav.
+- Shape: flat, no shadows; 2px radius on controls, square cards. Links are underlined in red.
+  Active nav items get Elements' small red square marker.
+- Wordmark: lowercase "dispo." with a red dot; deliberately no red square or Swiss-cross
+  motif (the EPFL logo may come later, with the SAC).
+- Dark mode is our own extrapolation; EPFL doesn't define one.
+
+Calendar screens fit the viewport exactly (`--nav-h` reserves the phone bar), so the whole
+day is visible without page scrolling. Blocks carry no times: the hour axis shows them.
+Navigation: Now, Calendar and Me (graduation-cap icon; profile & settings). On tablets and
+laptops the nav is a floating card, top left. Week arrows are
+identical, the label has a fixed width, and "Today" appears to their left, so nothing moves. Motion is short: colour transitions
+on controls, a fade-up for new content, disabled under prefers-reduced-motion. Links that leave
+the app open in a new tab (`ExternalLink`).
+Week navigation is understated because most weeks repeat: "next" is a button, "previous" is
+faint, "Today" only appears off-week.
 
 ## Stack
 
@@ -32,7 +86,9 @@ OIDC verification. No auth library: `src/lib/auth.ts` is the whole login flow.
 
 ```
 src/
-  app/            routes: / (friends + search), /group (find a time, ?g= saved group), /u/[id] (week), /setup, /me
+  app/            routes: / (people), /discover (+ /discover/[key]), /calendar (?with= people),
+                  /u/[id] (someone's week), /setup, /me. Old /group, /classmates, /course/*
+                  and ?g= links redirect.
                   flagged: /classmates, /course/[key]
   app/api/auth    google, callback, signout, dev (local only)
   app/api/cron    refresh  — re-fetch stale feeds, protected by CRON_SECRET

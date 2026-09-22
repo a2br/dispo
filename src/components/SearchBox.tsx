@@ -4,10 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import type { PersonView } from "@/lib/present";
 import type { DirectoryPerson } from "@/lib/directory";
 import { Avatar } from "./Avatar";
+import { input } from "@/lib/ui";
 import { InviteButton } from "./InviteButton";
+import { ExternalLink } from "./ExternalLink";
 import { PersonRow } from "./PersonRow";
 
-export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
+export function SearchBox({ autoFocus = false, inviteUrl }: { autoFocus?: boolean; inviteUrl?: string }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<PersonView[] | null>(null);
   const [directory, setDirectory] = useState<DirectoryPerson[]>([]);
@@ -65,11 +67,11 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
           value={q}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Search anyone at EPFL by name"
-          className="w-full rounded-2xl bg-surface border border-line pl-10 pr-4 py-3 text-base outline-none focus:border-foreground/40"
+          className={input("lg", "pl-10")}
         />
       </div>
       {term.length >= 2 && (
-        <div className="mt-3 space-y-3">
+        <div className="mt-3 space-y-3 animate-in">
           {results === null ? (
             <p className="rounded-2xl bg-surface border border-line px-4 py-6 text-center text-sm text-muted">Searching…</p>
           ) : (
@@ -97,14 +99,12 @@ export function SearchBox({ autoFocus = false }: { autoFocus?: boolean }) {
                             {d.profileUrl && (
                               <>
                                 {" · "}
-                                <a href={d.profileUrl} target="_blank" rel="noreferrer" className="underline decoration-line underline-offset-2">
-                                  profile
-                                </a>
+                                <ExternalLink href={d.profileUrl}>profile</ExternalLink>
                               </>
                             )}
                           </div>
                         </div>
-                        <InviteButton firstName={d.name.split(" ")[0]} email={d.email} />
+                        <InviteButton firstName={d.name.split(" ")[0]} email={d.email} inviteUrl={inviteUrl} />
                       </li>
                     ))}
                   </ul>

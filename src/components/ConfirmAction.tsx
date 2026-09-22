@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { button } from "@/lib/ui";
 
 /**
  * A button that asks before doing something hard to undo. First tap reveals the question,
@@ -30,15 +31,15 @@ export function ConfirmAction({
     );
   }
   return (
-    <form action={action} className="flex flex-wrap items-center justify-end gap-2">
+    <form action={action} className="flex flex-wrap items-center justify-end gap-2 animate-in">
       {Object.entries(fields).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
       <span className="text-sm text-muted">{question}</span>
-      <button type="button" onClick={() => setAsking(false)} className="rounded-full border border-line px-3 py-1.5 text-sm font-medium active:opacity-70">
+      <button type="button" onClick={() => setAsking(false)} className={button("secondary")}>
         Keep
       </button>
-      <button type="submit" className="rounded-full bg-busy text-white px-3 py-1.5 text-sm font-semibold active:opacity-80">
+      <button type="submit" className={button("dangerSolid")}>
         {confirmLabel}
       </button>
     </form>
