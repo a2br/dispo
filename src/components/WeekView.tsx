@@ -56,6 +56,20 @@ function titleFor(e: EventView): string {
   return [e.title, `${fmtTime(e.start)}–${fmtTime(e.end)}`, e.masked ? null : e.rooms].filter(Boolean).join(" · ");
 }
 
+/** Block text; `.ev` sizing in globals.css picks one line, title + room, or a two-line title. */
+function BlockBody({ e, live }: { e: EventView; live?: boolean }) {
+  const sub = e.masked ? "" : [KIND_LABEL[e.kind], e.rooms].filter(Boolean).join(" · ");
+  return (
+    <div className="ev-body">
+      <div className="ev-head">
+        <span className="ev-title">{e.title}</span>
+        {live && <span className="text-[10px] font-bold uppercase tracking-wide text-busy shrink-0">now</span>}
+      </div>
+      {sub && <div className="ev-sub">{sub}</div>}
+    </div>
+  );
+}
+
 /**
  * A week that fills its container: day tabs + a stretching day timeline on phones, a week grid
  * on wider screens. Hour rows share the available height, so the whole day is visible without
@@ -154,7 +168,7 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
               return (
                 <div
                   key={e.id}
-                  className="m-px rounded-md border px-1.5 py-1 text-[11px] leading-tight overflow-hidden"
+                  className="ev m-px rounded-md border px-1.5 py-0.5 text-[11px] leading-tight overflow-hidden"
                   style={{
                     gridColumn: day + 2,
                     gridRow: `${Math.max(1, rowOfMinutes(s.minutes))} / ${Math.min(slots + 1, rowOfMinutes(en.minutes || 24 * 60))}`,
@@ -164,8 +178,7 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
                   }}
                   title={titleFor(e)}
                 >
-                  <div className="font-bold line-clamp-2">{e.title}</div>
-                  {!e.masked && <div className="truncate opacity-80">{[KIND_LABEL[e.kind], e.rooms].filter(Boolean).join(" · ")}</div>}
+                  <BlockBody e={e} />
                 </div>
               );
             }),
@@ -208,7 +221,7 @@ function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: Eve
           return (
             <div
               key={e.id}
-              className="m-px rounded-md border px-2 py-0.5 text-xs leading-tight overflow-hidden"
+              className="ev m-px rounded-md border px-2 py-0.5 text-xs leading-tight overflow-hidden"
               style={{
                 gridColumn: 2,
                 gridRow: `${Math.max(1, rowOfMinutes(s.minutes))} / ${Math.min(slots + 1, rowOfMinutes(en.minutes || 24 * 60))}`,
@@ -218,11 +231,7 @@ function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: Eve
               }}
               title={titleFor(e)}
             >
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-bold truncate">{e.title}</span>
-                {live && <span className="text-[10px] font-bold uppercase tracking-wide text-busy shrink-0">now</span>}
-              </div>
-              {!e.masked && <div className="opacity-80 truncate">{[KIND_LABEL[e.kind], e.rooms].filter(Boolean).join(" · ")}</div>}
+              <BlockBody e={e} live={live} />
             </div>
           );
         })}

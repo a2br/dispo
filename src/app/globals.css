@@ -162,3 +162,71 @@ main {
 .safe-bottom {
   padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
 }
+
+/*
+ * Calendar blocks adapt to the height they get (hour rows stretch with the screen).
+ * The body is a wrapping column: a line that doesn't fit moves into a hidden second column,
+ * so text disappears line by line instead of being cut in half.
+ */
+.ev {
+  container-type: size;
+}
+.ev-body {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  height: 100%;
+  overflow: hidden;
+}
+.ev-body > * {
+  width: 100%;
+  min-width: 0;
+}
+.ev-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.375rem;
+}
+.ev-title {
+  min-width: 0;
+  font-weight: 700;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ev-sub {
+  opacity: 0.8;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+/* Room for a two-line title plus the kind/room line (narrow lanes keep one line + ellipsis). */
+@container (min-height: 3.75em) and (min-width: 8em) {
+  .ev-title {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    hyphens: auto;
+    overflow-wrap: break-word;
+  }
+}
+/* Not even two lines: title and room share a single line. */
+@container (max-height: 2.4em) {
+  .ev-body {
+    display: block;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-size: 0.9em;
+  }
+  .ev-body > *,
+  .ev-head,
+  .ev-title {
+    display: inline;
+  }
+  .ev-sub::before {
+    content: " · ";
+  }
+}
