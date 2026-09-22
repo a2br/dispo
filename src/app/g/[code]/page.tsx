@@ -1,20 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { appUrl, getUser } from "@/lib/auth";
+import { notFound, redirect } from "next/navigation";
+import { getUser } from "@/lib/auth";
 import { groupByInviteCode } from "@/lib/invites";
-import { statusesFor } from "@/lib/calendar";
-import { publicPerson } from "@/lib/present";
-import { button, sectionTitle } from "@/lib/ui";
-import { leaveGroupAction } from "@/app/actions";
+import { button } from "@/lib/ui";
 import { Avatar } from "@/components/Avatar";
-import { BackButton } from "@/components/BackButton";
-import { PersonRow } from "@/components/PersonRow";
 import { Fineprint, SignIn } from "@/components/SignIn";
-import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { Wordmark } from "@/components/Wordmark";
-import { StarButton } from "@/components/StarButton";
-import { starsOf } from "@/lib/stars";
 
 const firstName = (n: string) => n.split(" ")[0];
 
@@ -38,53 +30,10 @@ export default async function GroupInvitePage({ params }: PageProps<"/g/[code]">
   if (!inv) notFound();
   const viewer = await getUser();
   const join = `/g/${code}/join`;
-  const url = `${appUrl()}/g/${code}`;
   const isMember = viewer ? inv.people.some((p) => p.id === viewer.id) : false;
-  const isOwner = viewer?.id === inv.owner.id;
   const names = inv.people.map((p) => firstName(p.name));
 
-  if (viewer && isMember) {
-    const others = inv.people.filter((p) => p.id !== viewer.id);
-    const statuses = await statusesFor(inv.people.map((p) => p.id));
-    const starred = (await starsOf(viewer.id)).groups.has(inv.group.id);
-    return (
-      <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-6">
-        <header className="space-y-2">
-          <div className="flex items-center gap-3">
-            <BackButton href="/" label="Now" />
-            <h1 className="flex-1 text-2xl md:text-3xl font-bold tracking-tight truncate">{inv.group.name}</h1>
-            <StarButton kind="group" id={inv.group.id} starred={starred} name={inv.group.name} />
-          </div>
-          <p className="text-sm text-muted">
-            Anyone with the link can join. Joining connects them with everyone here. {isOwner ? "You created this group." : `Created by ${firstName(inv.owner.name)}.`}
-          </p>
-        </header>
-        <div className="flex flex-wrap gap-2">
-          <ShareLinkButton url={url} title={`Join “${inv.group.name}” on dispo`} text="See when everyone’s free:" label="Share link" size="md" />
-          {others.length > 0 && (
-            <Link href={`/calendar?with=${others.map((p) => p.id).join(",")}`} className={button("secondary", "md")}>
-              Open in calendar
-            </Link>
-          )}
-        </div>
-        <section>
-          <h2 className={`${sectionTitle} mb-2`}>{inv.people.length} in this group</h2>
-          <ul className="border border-line divide-y divide-line">
-            {inv.people.map((p) => (
-              <PersonRow key={p.id} person={publicPerson(p, statuses.get(p.id) ?? { state: "unknown" })} trailing={p.id === inv.owner.id ? <span className="text-xs text-muted">created it</span> : undefined} />
-            ))}
-          </ul>
-          {others.length === 0 && <p className="mt-2 text-sm text-muted">Nobody has joined yet. Drop the link in your group chat.</p>}
-        </section>
-        {!isOwner && (
-          <form action={leaveGroupAction}>
-            <input type="hidden" name="groupId" value={inv.group.id} />
-            <button className={button("danger", "sm", "-ml-3")}>Leave group</button>
-          </form>
-        )}
-      </main>
-    );
-  }
+  if (viewer && isMember) redirect(`/groups/${inv.group.id}`);
 
   return (
     <main className="mx-auto max-w-md min-h-dvh flex flex-col justify-center py-10 gap-8">

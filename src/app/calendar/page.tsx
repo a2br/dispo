@@ -2,18 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
-import { appUrl, requireUser } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
 import { starsOf } from "@/lib/stars";
 import { accessFor, relationTo } from "@/lib/access";
 import { STALE_MS, connectionsOf, eventsBetween, getCalendar, getUserById, refreshCalendar, statusFrom } from "@/lib/calendar";
 import { mergeBlocks } from "@/lib/blocks";
-import { getGroup, listGroups } from "@/lib/groups";
+import { getGroup, listGroups, shareAGroup } from "@/lib/groups";
 import type { MemberData } from "@/lib/groupcalc";
 import { eventView, statusView } from "@/lib/present";
 import { addDays, dayStartOf, isoDate, nowMs, relativeAge, todayIndexInWeek, weekStartFromParam, weekStartOf } from "@/lib/time";
-import { GroupPicker } from "@/components/GroupPicker";
+import { PeoplePicker } from "@/components/PeoplePicker";
 import { GroupWeek } from "@/components/GroupWeek";
-import { SaveGroupForm } from "@/components/SaveGroupForm";
 import { StatusPill } from "@/components/StatusPill";
 import { WeekView } from "@/components/WeekView";
 import { WeekNav } from "@/components/WeekNav";
@@ -37,7 +36,8 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   if (typeof sp.g === "string" && requested.length === 0) {
     const legacy = await getGroup(viewer.id, sp.g);
     const params = new URLSearchParams();
-    if (legacy?.members.length) params.set("with", legacy.members.map((m) => m.id).join(","));
+    const others = legacy?.people.filter((p) => p.id !== viewer.id) ?? [];
+    if (others.length) params.set("with", others.map((p) => p.id).join(","));
     if (weekParam) params.set("w", weekParam);
     redirect(`/calendar${params.size ? `?${params}` : ""}`);
   }
@@ -51,7 +51,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   for (const id of ids) {
     const user = id === viewer.id ? viewer : await getUserById(id);
     if (!user) continue;
-    if (id !== viewer.id && accessFor(user, await relationTo(viewer.id, user)) === "none") continue;
+    if (id !== viewer.id && accessFor(user, await relationTo(viewer.id, user)) === "none" && !(await shareAGroup(viewer.id, user.id))) continue;
     const cal = await getCalendar(user.id);
     const blocks = cal ? mergeBlocks(await eventsBetween(user.id, weekStart, weekEnd)).map(({ start, end }) => ({ start, end })) : [];
     members.push({ id: user.id, name: user.name, image: user.image, isSelf: user.id === viewer.id, hasCalendar: Boolean(cal), blocks });
@@ -64,21 +64,13 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const selected = members.filter((m) => !m.isSelf).map((m) => ({ id: m.id, name: m.name, image: m.image }));
   const comparing = selected.length > 0;
   const baseParams: Record<string, string> = selected.length ? { with: selected.map((m) => m.id).join(",") } : {};
-  const sameAsGroup = (gm: string[]) => gm.length === selected.length && gm.every((id) => selected.some((m) => m.id === id));
-  // A group "is open" exactly when the view contains its people, however you got here.
-  const match = selected.length ? groups.find((g) => sameAsGroup(g.members.map((m) => m.id))) : undefined;
-  const matchedGroup = match
-    ? {
-        id: match.id,
-        name: match.name,
-        isOwner: match.isOwner,
-        shareUrl: match.inviteCode ? `${appUrl()}/g/${match.inviteCode}` : null,
-        ownerFirstName: match.isOwner ? undefined : match.members.find((m) => m.id === match.ownerId)?.name.split(" ")[0],
-      }
-    : null;
-  const panelGroups = groups
-    .map((g) => ({ id: g.id, name: g.name, memberIds: g.members.map((m) => m.id), starred: stars.groups.has(g.id) }))
-    .sort((a, b) => Number(b.starred) - Number(a.starred) || a.name.localeCompare(b.name));
+  const pickerGroups = groups
+    .map((g) => ({ id: g.id, name: g.name, memberIds: g.members.map((m) => m.id) }))
+    .sort((a, b) => Number(stars.groups.has(b.id)) - Number(stars.groups.has(a.id)) || a.name.localeCompare(b.name));
+  // Which group (if any) this view is: exactly its people, however you got here.
+  const match = selected.length
+    ? groups.find((g) => g.members.length === selected.length && g.members.every((m) => selected.some((s) => s.id === m.id)))
+    : undefined;
   const weekHref = (w: number) => `/calendar?${new URLSearchParams({ ...baseParams, w: isoDate(w) })}`;
   const todayIdx = todayIndexInWeek(weekStart, now);
 
@@ -88,31 +80,6 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const [myWeek, myToday] = myCal
     ? await Promise.all([eventsBetween(viewer.id, weekStart, weekEnd), eventsBetween(viewer.id, dayStartOf(now), dayStartOf(now) + 86_400_000)])
     : [[], []];
-
-  const groupChips = (
-    <>
-      {groups.filter((g) => matchedGroup?.id === g.id).map((g) => {
-        const active = matchedGroup?.id === g.id;
-        const ids = g.members.map((m) => m.id);
-        const params = new URLSearchParams({ ...(active || ids.length === 0 ? {} : { with: ids.join(",") }), ...(weekParam ? { w: weekParam } : {}) });
-        return (
-          <Link
-            key={g.id}
-            href={`/calendar${params.size ? `?${params}` : ""}`}
-            aria-pressed={active}
-            title={active ? "Clear the view" : `Show ${g.name}`}
-            className={button(active ? "dark" : "secondary")}
-          >
-            <span className={active ? "opacity-80 font-normal" : "text-muted font-normal"}>★</span>
-            {g.name}
-          </Link>
-        );
-      })}
-      {selected.length > 0 && !matchedGroup && (
-        <SaveGroupForm memberIds={selected.map((m) => m.id)} suggestion={selected.map((m) => m.name.split(" ")[0]).join(", ")} />
-      )}
-    </>
-  );
 
   // Fills the screen exactly (minus the phone's bottom bar), so the calendar never needs page scrolling.
   return (
@@ -129,8 +96,25 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         )}
       </header>
 
-      <div className="shrink-0">
-        <GroupPicker friends={friends} selected={selected} week={weekParam ?? null} matchedGroup={matchedGroup} groups={panelGroups} starredUserIds={[...stars.users]} trailing={groupChips} />
+      <div className="shrink-0 space-y-2">
+        <PeoplePicker friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
+        {comparing && (
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {match ? (
+              <Link href={`/groups/${match.id}`} className={button("secondary", "sm")}>
+                <span className="text-muted font-normal">★</span> {match.name}
+                <span className="text-muted font-normal">· group page</span>
+              </Link>
+            ) : (
+              <Link
+                href={`/groups/new?${new URLSearchParams({ with: selected.map((m) => m.id).join(","), from: `/calendar?${new URLSearchParams(baseParams)}` })}`}
+                className={button("quiet", "sm", "-ml-3")}
+              >
+                Save these people as a group
+              </Link>
+            )}
+          </div>
+        )}
       </div>
 
       {comparing ? (

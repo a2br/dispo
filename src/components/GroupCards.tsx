@@ -16,13 +16,13 @@ function nextLabel(n: Next, now: number): { text: string; good: boolean } {
   return { text: `Next all free: ${when} ${fmtTime(n.start)}–${fmtTime(n.end)}`, good: false };
 }
 
-/** One tap into a group's availability, with the next time everyone is free. */
+/** Your groups, each with the next time everyone is free. Tapping one opens its page. */
 export function GroupCards({ groups, next, now, pinned }: { groups: GroupWithMembers[]; next: Map<string, Next>; now: number; pinned?: Set<string> }) {
   return (
     <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
       {groups.map((g) => {
         const label = nextLabel(next.get(g.id), now);
-        const href = g.members.length ? `/calendar?with=${g.members.map((m) => m.id).join(",")}` : g.inviteCode ? `/g/${g.inviteCode}` : "/calendar";
+        const href = `/groups/${g.id}`; // tapping a group opens it, like tapping a chat
         return (
           <li key={g.id}>
             <Link href={href} className="group flex items-center gap-3 border border-line bg-surface px-4 py-3 hover:border-foreground">
@@ -40,7 +40,6 @@ export function GroupCards({ groups, next, now, pinned }: { groups: GroupWithMem
                       ★
                     </span>
                   )}
-                  {g.shared && <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-muted border border-line px-1">shared</span>}
                 </span>
                 <span className={`block text-sm truncate ${label.good ? "text-free font-bold" : "text-muted"}`}>
                   {g.members.length === 0 ? "Nobody has joined yet" : label.text}

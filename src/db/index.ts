@@ -1,6 +1,7 @@
 import { createClient, type Client } from "@libsql/client";
 import { drizzle } from "drizzle-orm/libsql";
 import * as schema from "./schema";
+import { newCode } from "@/lib/codes";
 
 const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS users (
@@ -72,28 +73,60 @@ CREATE TABLE IF NOT EXISTS stars (
 async function migrate(client: Client) {
   const cols = await client.execute("PRAGMA table_info(users)");
   const names = new Set(cols.rows.map((r) => String(r.name)));
-  if (!names.has("discoverable")) await client.execute("ALTER TABLE users ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 1");
-  if (!names.has("phone")) await client.execute("ALTER TABLE users ADD COLUMN phone TEXT");
-  if (!names.has("invite_code")) await client.execute("ALTER TABLE users ADD COLUMN invite_code TEXT");
+  if (!names.has("discoverable"))
+    await client.execute(
+      "ALTER TABLE users ADD COLUMN discoverable INTEGER NOT NULL DEFAULT 1",
+    );
+  if (!names.has("phone"))
+    await client.execute("ALTER TABLE users ADD COLUMN phone TEXT");
+  if (!names.has("invite_code"))
+    await client.execute("ALTER TABLE users ADD COLUMN invite_code TEXT");
   const gcols = await client.execute("PRAGMA table_info(saved_groups)");
-  if (!gcols.rows.some((r) => String(r.name) === "invite_code")) await client.execute("ALTER TABLE saved_groups ADD COLUMN invite_code TEXT");
+  if (!gcols.rows.some((r) => String(r.name) === "invite_code"))
+    await client.execute(
+      "ALTER TABLE saved_groups ADD COLUMN invite_code TEXT",
+    );
   await client.execute(
     "CREATE TABLE IF NOT EXISTS stars (user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, target_id TEXT NOT NULL, created_at INTEGER NOT NULL, PRIMARY KEY (user_id, kind, target_id))",
   );
-  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_invite_code_idx ON users(invite_code)");
-  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS saved_groups_invite_code_idx ON saved_groups(invite_code)");
+  await client.execute(
+    "CREATE UNIQUE INDEX IF NOT EXISTS users_invite_code_idx ON users(invite_code)",
+  );
+  await client.execute(
+    "CREATE UNIQUE INDEX IF NOT EXISTS saved_groups_invite_code_idx ON saved_groups(invite_code)",
+  );
+  // Groups work like group chats: the creator is a member, and every group has an invite link.
+  await client.execute(
+    "INSERT OR IGNORE INTO saved_group_members (group_id, user_id) SELECT id, owner_id FROM saved_groups",
+  );
+  const linkless = await client.execute(
+    "SELECT id FROM saved_groups WHERE invite_code IS NULL",
+  );
+  for (const r of linkless.rows)
+    await client.execute({
+      sql: "UPDATE saved_groups SET invite_code = ? WHERE id = ?",
+      args: [newCode(), String(r.id)],
+    });
 }
 
 type G = typeof globalThis & { __dispoDb?: ReturnType<typeof build> };
 
 function build() {
   const url = process.env.DATABASE_URL ?? "file:./data/dispo.db";
-  const client: Client = createClient({ url, authToken: process.env.DATABASE_AUTH_TOKEN || undefined });
-  const ready: Promise<void> = client
-    .executeMultiple(SCHEMA_SQL)
-    .then(() => migrate(client))
-    .then(() => client.execute("PRAGMA foreign_keys = ON"))
-    .then(() => undefined);
+  const client: Client = createClient({
+    url,
+    authToken: process.env.DATABASE_AUTH_TOKEN || undefined,
+  });
+  // `next build` imports every route in parallel workers; pages here are all rendered on request,
+  // so skip schema setup at build time instead of racing the workers (and a dev server) for the file.
+  const building = process.env.NEXT_PHASE === "phase-production-build";
+  const ready: Promise<void> = building
+    ? Promise.resolve()
+    : client
+        .executeMultiple(SCHEMA_SQL)
+        .then(() => migrate(client))
+        .then(() => client.execute("PRAGMA foreign_keys = ON"))
+        .then(() => undefined);
   return { client, db: drizzle(client, { schema }), ready };
 }
 
@@ -101,7 +134,8 @@ const g = globalThis as G;
 const cached = g.__dispoDb;
 const inst = cached ?? (g.__dispoDb = build());
 // A dev-server reload reuses the cached client: still apply any new additive migrations.
-if (cached) inst.ready = inst.ready.then(() => migrate(inst.client));
+if (cached && process.env.NEXT_PHASE !== "phase-production-build")
+  inst.ready = inst.ready.then(() => migrate(inst.client));
 
 export const db = inst.db;
 export const dbReady = inst.ready;

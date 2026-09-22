@@ -5,13 +5,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db, dbReady, schema } from "@/db";
 import type { Visibility } from "@/db/schema";
-import { appUrl, destroySession, getUser, requireUser, safeNext } from "@/lib/auth";
-import { ensureGroupInviteCode, leaveGroup } from "@/lib/invites";
+import { destroySession, getUser, requireUser, safeNext } from "@/lib/auth";
 import { setStar } from "@/lib/stars";
 import { connectCalendar, disconnectCalendar, refreshCalendar } from "@/lib/calendar";
 import { IcsError } from "@/lib/ics";
 import { connectionBetween } from "@/lib/access";
-import { createGroup, deleteGroup, renameGroup } from "@/lib/groups";
+import { addMembers, createGroup, deleteGroup, leaveGroup, renameGroup } from "@/lib/groups";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -124,34 +123,6 @@ export async function signOut(): Promise<void> {
   redirect("/");
 }
 
-// ---------- saved groups ----------
-
-
-export async function createGroupAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  const name = String(formData.get("name") ?? "");
-  const members = String(formData.get("members") ?? "").split(",");
-  const gid = await createGroup(user.id, name, members);
-  await setStar(user.id, "group", gid, true);
-  revalidatePath("/", "layout");
-  redirect(`/calendar?with=${members.filter(Boolean).join(",")}`);
-}
-
-export async function renameGroupAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  await renameGroup(user.id, String(formData.get("groupId") ?? ""), String(formData.get("name") ?? ""));
-  revalidatePath("/", "layout");
-}
-
-export async function deleteGroupAction(formData: FormData): Promise<void> {
-  const user = await requireUser();
-  await deleteGroup(user.id, String(formData.get("groupId") ?? ""));
-  revalidatePath("/", "layout");
-  // Stay on the same view: deleting the shortcut doesn't change who you're looking at.
-  const members = String(formData.get("members") ?? "");
-  redirect(`/calendar${members ? `?with=${members}` : ""}`);
-}
-
 // ---------- stars ----------
 
 export async function setStarAction(kind: "user" | "group", targetId: string, on: boolean): Promise<void> {
@@ -161,29 +132,42 @@ export async function setStarAction(kind: "user" | "group", targetId: string, on
   revalidatePath("/", "layout");
 }
 
-// ---------- invites & shared groups ----------
+// ---------- groups (group-chat style: shared with every member) ----------
 
-/** Mint (or reuse) a group's share link. Owner only; returns the full URL. */
-export async function groupShareUrl(groupId: string): Promise<string | null> {
+/** New group from the "New group" screen: you + the connections you picked; opens its page. */
+export async function createGroupAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const code = await ensureGroupInviteCode(user.id, groupId);
+  const members = formData.getAll("member").map(String);
+  const { id } = await createGroup(user.id, String(formData.get("name") ?? ""), members);
+  await setStar(user.id, "group", id, true);
   revalidatePath("/", "layout");
-  return code ? `${appUrl()}/g/${code}` : null;
+  redirect(`/groups/${id}?created=1`);
 }
 
-/** New group made to be shared in a group chat: create it with a link and open its page. */
-export async function createGroupLinkAction(formData: FormData): Promise<void> {
+export async function addMembersAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  const id = await createGroup(user.id, String(formData.get("name") ?? ""), []);
-  await setStar(user.id, "group", id, true);
-  const code = await ensureGroupInviteCode(user.id, id);
+  const groupId = String(formData.get("groupId") ?? "");
+  await addMembers(user.id, groupId, formData.getAll("member").map(String));
   revalidatePath("/", "layout");
-  redirect(code ? `/g/${code}` : "/calendar");
+  redirect(`/groups/${groupId}`);
+}
+
+export async function renameGroupAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  await renameGroup(user.id, String(formData.get("groupId") ?? ""), String(formData.get("name") ?? ""));
+  revalidatePath("/", "layout");
 }
 
 export async function leaveGroupAction(formData: FormData): Promise<void> {
   const user = await requireUser();
-  await leaveGroup(user, String(formData.get("groupId") ?? ""));
+  await leaveGroup(user.id, String(formData.get("groupId") ?? ""));
   revalidatePath("/", "layout");
-  redirect("/calendar");
+  redirect("/");
+}
+
+export async function deleteGroupAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  await deleteGroup(user.id, String(formData.get("groupId") ?? ""));
+  revalidatePath("/", "layout");
+  redirect("/");
 }

@@ -1,18 +1,15 @@
-"use client";
-
-import { useState } from "react";
-import { GroupLinkForm } from "./GroupLinkForm";
+import Link from "next/link";
+import { button } from "@/lib/ui";
 import { ShareLinkButton } from "./ShareLinkButton";
 
-/** The two ways to bring people in. While a group link is being named, only that form shows. */
+/** The two ways to bring people in: your personal link, or a new group with its own link. */
 export function InviteActions({ inviteUrl, primary = false }: { inviteUrl: string; primary?: boolean }) {
-  const [groupOpen, setGroupOpen] = useState(false);
   return (
     <div className="flex flex-wrap gap-2">
-      {!groupOpen && (
-        <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant={primary ? "primary" : "secondary"} />
-      )}
-      <GroupLinkForm onOpenChange={setGroupOpen} />
+      <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant={primary ? "primary" : "secondary"} />
+      <Link href="/groups/new" className={button("secondary")}>
+        New group
+      </Link>
     </div>
   );
 }

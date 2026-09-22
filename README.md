@@ -12,13 +12,14 @@ IS-Academia timetables, which live behind Gaspar and have no shared calendar ser
   Invite opens the share sheet or an email draft; the app never sends anything itself.
   People who hide their directory profile don't appear. Private dispo users are shown as
   "not on dispo" so their membership stays hidden.
-- Groups: private shortcuts. Only you see them and nobody is notified. The calendar's state is
-  only who is in the view (`?with=`); a group chip is active exactly when the view holds its
-  people, however you got there. Rename/delete appear in the panel for the matching group;
-  "Save as group" appears when the view matches none. "Clear" empties the view.
-- Calendar: one place for your week and for comparing with others (like overlaying calendars
-  in Google Calendar). On its own it shows your week; add people or tap a saved group and it
-  switches to the side-by-side comparison. Pick several friends and see everyone's free/busy side by side for a day,
+- Groups work like a group chat: everyone in a group sees it and every group has an invite
+  link. Each group has one page (`/groups/<id>`): when everyone is next free, "Open in calendar",
+  members, invite link, add people, rename, leave (creator can delete). Make one with "New group"
+  (home, or "Save these people as a group" in the calendar).
+- Calendar: one place for your week and for comparing with others. It only chooses who is in
+  view: "+ People" opens one list (search, your groups, your people with tick boxes). On its own it
+  shows your week; with people it switches to the side-by-side comparison. When the view is
+  exactly a group, a link to that group's page appears. Pick several friends and see everyone's free/busy side by side for a day,
   plus the slots this week (08:00–19:00, 30 min or more) where you're all free. Shows only
   merged busy blocks, never course names.
 - Discover (`/discover`, a subscreen of Now with a back button): people you're not connected
@@ -36,8 +37,8 @@ sidebar, friends get a timeline of their day, and pages spread into columns.
 - Personal invite link `/i/<code>`: "Anatole invited you". Signing in through it connects you
   with the inviter straight away, then setup, then their week.
 - Group link `/g/<code>`, made for group chats: anyone who signs in through it joins the group,
-  gets connected with everyone already in it, and lands in the group's calendar. Members see the
-  group page (who's in, share link, open calendar, leave). Groups without a link stay private.
+  gets connected with everyone already in it, and lands in the group's calendar. Members opening
+  the link go to the group page.
 - Joining happens in `/i/<code>/accept` and `/g/<code>/join`, never on page view, so link
   previews and prefetches can't join anyone. Sign-in carries a safe `next` path through OAuth.
 - Personalised titles, descriptions and Open Graph images for invite and group links (first
@@ -86,7 +87,8 @@ OIDC verification. No auth library: `src/lib/auth.ts` is the whole login flow.
 
 ```
 src/
-  app/            routes: / (people), /discover (+ /discover/[key]), /calendar (?with= people),
+  app/            routes: / (Now), /groups/new, /groups/[id], /discover (+ /discover/[key]),
+                  /calendar (?with= people), /i/[code], /g/[code],
                   /u/[id] (someone's week), /setup, /me. Old /group, /classmates, /course/*
                   and ?g= links redirect.
                   flagged: /classmates, /course/[key]

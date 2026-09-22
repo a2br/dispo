@@ -121,7 +121,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     </Link>
                   )}
                 </Step>
-                <Step n={2} done={conns.accepted.length > 0} title="Bring your people" detail="Send your link to friends, or a group link to a group chat. Whoever signs up is connected with you automatically.">
+                <Step n={2} done={conns.accepted.length > 0} title="Bring your people" detail="Send your link to friends, or make a group and drop its link in your group chat. Whoever signs up is connected with you automatically.">
                   {conns.accepted.length === 0 && (
                     <InviteActions inviteUrl={inviteUrl} primary={Boolean(cal)} />
                   )}
@@ -181,8 +181,8 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <section>
               <div className="flex items-baseline justify-between mb-2">
                 <h2 className={sectionTitle}>Groups</h2>
-                <Link href="/calendar" className="text-sm link">
-                  Calendar
+                <Link href="/groups/new" className="text-sm link">
+                  New group
                 </Link>
               </div>
               <GroupCards groups={sortedGroups} next={groupNext} now={now} pinned={stars.groups} />
@@ -193,7 +193,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <section className={`${card} p-4 space-y-3`}>
               <div>
                 <h2 className="font-bold">Invite people</h2>
-                <p className="text-sm text-muted">Whoever signs up through your link is connected with you. A group link connects everyone in the chat.</p>
+                <p className="text-sm text-muted">Whoever signs up through your link is connected with you. A group comes with its own link for your group chat.</p>
               </div>
               <InviteActions inviteUrl={inviteUrl} />
             </section>

@@ -30,8 +30,8 @@ type Me = { id: string; name: string; email: string; image: string | null };
 export function AppNav({ me }: { me: Me }) {
   const path = usePathname();
   const items = [
-    { href: "/", label: "Now", icon: IconNow, active: path === "/" || path.startsWith("/u/") || path.startsWith("/discover") || path.startsWith("/classmates") || path.startsWith("/course/") },
-    { href: "/calendar", label: "Calendar", icon: IconWeek, active: path.startsWith("/calendar") || path.startsWith("/group") },
+    { href: "/", label: "Now", icon: IconNow, active: path === "/" || path.startsWith("/u/") || path.startsWith("/groups") || path.startsWith("/discover") || path.startsWith("/classmates") || path.startsWith("/course/") },
+    { href: "/calendar", label: "Calendar", icon: IconWeek, active: path.startsWith("/calendar") || path === "/group" },
   ];
   const meActive = path.startsWith("/me") || path.startsWith("/setup");
 
