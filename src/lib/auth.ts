@@ -102,6 +102,7 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
     phone: null,
     inviteCode: null,
     shareCode: null,
+    hideInviteCard: false,
     createdAt: Date.now(),
   };
   await db.insert(schema.users).values(u);

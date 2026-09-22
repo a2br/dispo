@@ -83,6 +83,13 @@ export async function setPublicLink(formData: FormData): Promise<void> {
   revalidatePath("/", "layout");
 }
 
+export async function dismissInviteCard(): Promise<void> {
+  const user = await requireUser();
+  await dbReady;
+  await db.update(schema.users).set({ hideInviteCard: true }).where(eq(schema.users.id, user.id));
+  revalidatePath("/", "layout");
+}
+
 export async function requestConnection(formData: FormData): Promise<void> {
   const user = await requireUser();
   const target = String(formData.get("userId") ?? "");

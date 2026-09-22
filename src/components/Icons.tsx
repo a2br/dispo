@@ -14,3 +14,11 @@ export function ChevronRight({ className = "size-4" }: { className?: string }) {
     </svg>
   );
 }
+
+export function CloseIcon({ className = "size-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" className={className} aria-hidden>
+      <path d="M4 4l8 8M12 4l-8 8" />
+    </svg>
+  );
+}

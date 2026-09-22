@@ -58,7 +58,8 @@ sidebar, friends get a timeline of their day, and pages spread into columns.
 
 ## Home ("Now")
 
-What people open the app for: who can I see, and when? "Find anyone at EPFL" sits at the top,
+What people open the app for: who can I see, and when? An "Invite friends" card sits at the top
+(dismissible with ×, remembered on the account), then "Find anyone at EPFL",
 then one "Your people" list (pinned first, then free, then busy greyed out, then no schedule), then groups
 with the next time everyone is free. New accounts get a two-step checklist (add schedule, bring
 your people) instead. Search, Classmates and pending requests follow. Your own status lives at the

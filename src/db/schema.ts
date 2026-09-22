@@ -18,6 +18,8 @@ export const users = sqliteTable(
     inviteCode: text("invite_code"),
     /** Public view-only schedule link: /s/<code>. Null = off (opt-in, free/busy only). */
     shareCode: text("share_code"),
+    /** Dismissed the "Invite friends" card on Now (kept on the account so it stays hidden on every device). */
+    hideInviteCard: integer("hide_invite_card", { mode: "boolean" }).notNull().default(false),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email)],

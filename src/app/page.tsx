@@ -20,7 +20,8 @@ import { classmatesFor } from "@/lib/classmates";
 import { features } from "@/lib/features";
 import { PersonRow } from "@/components/PersonRow";
 import { SearchBox } from "@/components/SearchBox";
-import { acceptConnection, removeConnection } from "./actions";
+import { acceptConnection, dismissInviteCard, removeConnection } from "./actions";
+import { CloseIcon } from "@/components/Icons";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const user = await getUser();
@@ -97,12 +98,27 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         <span className="text-xs md:text-sm text-muted whitespace-nowrap">{new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" }).format(now)}</span>
       </header>
 
+      {!onboarding && !user.hideInviteCard && (
+        <section className={`${card} relative flex flex-wrap items-center gap-x-4 gap-y-3 p-4 pr-12`}>
+          <div className="flex-1 min-w-[12rem]">
+            <h2 className="font-bold">Invite friends</h2>
+            <p className="text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
+          </div>
+          <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="primary" />
+          <form action={dismissInviteCard} className="absolute top-2 right-2">
+            <button className={iconButton("quiet")} aria-label="Hide invite card" title="Hide">
+              <CloseIcon />
+            </button>
+          </form>
+        </section>
+      )}
+
       {/* Front and center: anyone at EPFL, on dispo or not (not-yet-members can be invited). */}
       <section className="space-y-1.5">
         <SearchBox inviteUrl={inviteUrl} placeholder="Find anyone at EPFL" />
       </section>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
         {/* Main column: you, then your people split into free now / busy */}
         <div className="space-y-6 min-w-0">
           {onboarding && (
@@ -174,7 +190,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         </div>
 
         {/* Side column: groups, invite, search, discover */}
-        <div className="space-y-6 xl:sticky xl:top-10">
+        <div className="space-y-6 min-w-0 xl:sticky xl:top-10">
           <section>
             <div className="flex items-center justify-between gap-3 mb-2">
               <h2 className={sectionTitle}>Groups</h2>
@@ -188,16 +204,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <p className={`${card} px-4 py-4 text-sm text-muted`}>A group is like a group chat for finding a time: everyone in it sees when you’re all free, and it comes with a link for your chat.</p>
             )}
           </section>
-
-          {!onboarding && (
-            <section className={`${card} p-4 space-y-3`}>
-              <div>
-                <h2 className="font-bold">Invite friends</h2>
-                <p className="text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
-              </div>
-              <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="secondary" />
-            </section>
-          )}
 
 
           {features.classmates && user.discoverable && mine.length > 0 && (
