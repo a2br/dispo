@@ -10,8 +10,7 @@ import { inviteCodeFor } from "@/lib/invites";
 import { nextCommonSlots } from "@/lib/nextSlot";
 import { starsOf } from "@/lib/stars";
 import { GroupCards } from "@/components/GroupCards";
-import { GroupLinkForm } from "@/components/GroupLinkForm";
-import { ShareLinkButton } from "@/components/ShareLinkButton";
+import { InviteActions } from "@/components/InviteActions";
 import { StatusPill } from "@/components/StatusPill";
 import { CourseChips } from "@/components/CourseChips";
 import { TodayScale, TodayStrip } from "@/components/TodayStrip";
@@ -124,10 +123,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </Step>
                 <Step n={2} done={conns.accepted.length > 0} title="Bring your people" detail="Send your link to friends, or a group link to a group chat. Whoever signs up is connected with you automatically.">
                   {conns.accepted.length === 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant={cal ? "primary" : "secondary"} />
-                      <GroupLinkForm />
-                    </div>
+                    <InviteActions inviteUrl={inviteUrl} primary={Boolean(cal)} />
                   )}
                 </Step>
               </ol>
@@ -199,10 +195,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 <h2 className="font-bold">Invite people</h2>
                 <p className="text-sm text-muted">Whoever signs up through your link is connected with you. A group link connects everyone in the chat.</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="secondary" />
-                <GroupLinkForm />
-              </div>
+              <InviteActions inviteUrl={inviteUrl} />
             </section>
           )}
 

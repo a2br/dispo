@@ -5,8 +5,12 @@ import { createGroupLinkAction } from "@/app/actions";
 import { button, input } from "@/lib/ui";
 
 /** "Plan with a group chat": name a group, get a link, drop it in the chat. */
-export function GroupLinkForm({ variant = "secondary" }: { variant?: "primary" | "secondary" }) {
-  const [open, setOpen] = useState(false);
+export function GroupLinkForm({ variant = "secondary", onOpenChange }: { variant?: "primary" | "secondary"; onOpenChange?: (open: boolean) => void }) {
+  const [open, setOpenState] = useState(false);
+  const setOpen = (v: boolean) => {
+    setOpenState(v);
+    onOpenChange?.(v);
+  };
   if (!open)
     return (
       <button type="button" onClick={() => setOpen(true)} className={button(variant)}>
