@@ -11,6 +11,7 @@ import { DiscoverToggle } from "@/components/DiscoverToggle";
 import { PhoneForm } from "@/components/PhoneForm";
 import { button, card, sectionTitle } from "@/lib/ui";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
+import { inviteCodeFor } from "@/lib/invites";
 import { refreshMyCalendar, removeMyCalendar, setPublicLink, setVisibility, signOut } from "@/app/actions";
 import type { Visibility } from "@/db/schema";
 
@@ -27,6 +28,7 @@ export default async function MePage() {
   const cal = await getCalendar(user.id);
   const today = cal ? await eventsBetween(user.id, dayStartOf(nowMs()), dayStartOf(nowMs()) + 86_400_000) : [];
   const now = nowMs();
+  const inviteUrl = `${appUrl()}/i/${await inviteCodeFor(user)}`;
 
   return (
     <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-6">
@@ -66,6 +68,14 @@ export default async function MePage() {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className={sectionTitle}>Invite link</h2>
+        <div className={`${card} flex flex-wrap items-center gap-3 p-4`}>
+          <p className="flex-1 min-w-[12rem] text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
+          <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="primary" />
+        </div>
       </section>
 
       <section className="space-y-2">

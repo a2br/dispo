@@ -206,6 +206,13 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             )}
           </section>
 
+          {/* The big invite card can be dismissed; the link itself stays one tap away. */}
+          {!onboarding && user.hideInviteCard && (
+            <section className={`${card} flex items-center gap-3 px-4 py-3`}>
+              <p className="flex-1 min-w-0 text-sm text-muted">Your invite link connects whoever signs up with you.</p>
+              <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Invite" variant="secondary" />
+            </section>
+          )}
 
           {features.classmates && user.discoverable && mine.length > 0 && (
             <section>
