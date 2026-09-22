@@ -11,7 +11,7 @@ import { newCode } from "@/lib/codes";
 import { connectCalendar, disconnectCalendar, refreshCalendar } from "@/lib/calendar";
 import { IcsError } from "@/lib/ics";
 import { connectionBetween } from "@/lib/access";
-import { addMembers, createGroup, deleteGroup, leaveGroup, renameGroup } from "@/lib/groups";
+import { addMembers, answerInvite, cancelInvite, createGroup, deleteGroup, leaveGroup, renameGroup } from "@/lib/groups";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
@@ -160,6 +160,22 @@ export async function addMembersAction(formData: FormData): Promise<void> {
   await addMembers(user.id, groupId, formData.getAll("member").map(String));
   revalidatePath("/", "layout");
   redirect(`/groups/${groupId}`);
+}
+
+export async function answerInviteAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  const accepted = await answerInvite(user.id, groupId, formData.get("accept") === "1");
+  if (accepted) await setStar(user.id, "group", groupId, true);
+  revalidatePath("/", "layout");
+  if (accepted) redirect(`/groups/${groupId}`);
+}
+
+export async function cancelInviteAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const groupId = String(formData.get("groupId") ?? "");
+  await cancelInvite(user.id, groupId, String(formData.get("userId") ?? ""));
+  revalidatePath("/", "layout");
 }
 
 export async function renameGroupAction(formData: FormData): Promise<void> {

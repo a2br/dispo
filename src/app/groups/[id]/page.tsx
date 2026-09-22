@@ -3,16 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { appUrl, requireUser } from "@/lib/auth";
 import { connectionsOf, statusesFor } from "@/lib/calendar";
-import { getGroup } from "@/lib/groups";
+import { getGroup, pendingInvitees } from "@/lib/groups";
 import { nextCommonSlots } from "@/lib/nextSlot";
 import { publicPerson } from "@/lib/present";
 import { starsOf } from "@/lib/stars";
 import { dayStartOf, fmtDayShort, fmtTime, nowMs } from "@/lib/time";
 import { button, card, input, sectionTitle } from "@/lib/ui";
-import { addMembersAction, deleteGroupAction, leaveGroupAction, renameGroupAction } from "@/app/actions";
+import { addMembersAction, cancelInviteAction, deleteGroupAction, leaveGroupAction, renameGroupAction } from "@/app/actions";
 import { BackButton } from "@/components/BackButton";
 import { ConfirmAction } from "@/components/ConfirmAction";
-import { PeopleChecklist } from "@/components/PeopleChecklist";
+import { PeopleAdder } from "@/components/PeopleAdder";
+import { Avatar } from "@/components/Avatar";
 import { PersonRow } from "@/components/PersonRow";
 import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { StarButton } from "@/components/StarButton";
@@ -33,11 +34,12 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
   if (!g) notFound();
   const now = nowMs();
   const others = g.people.filter((p) => p.id !== user.id);
-  const [statuses, next, stars, conns] = await Promise.all([
+  const [statuses, next, stars, conns, invited] = await Promise.all([
     statusesFor(g.people.map((p) => p.id)),
     nextCommonSlots([{ id: g.id, userIds: g.people.map((p) => p.id) }], now),
     starsOf(user.id),
     connectionsOf(user.id),
+    pendingInvitees(g.id),
   ]);
   const slot = next.get(g.id);
   const inviteUrl = `${appUrl()}/g/${g.inviteCode}`;
@@ -93,25 +95,47 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         </ul>
       </section>
 
-      {addable.length > 0 && (
-        <details className={card}>
-          <summary className="px-4 py-3 font-bold cursor-pointer">Add your people</summary>
-          <form action={addMembersAction} className="px-4 pb-4 space-y-3">
-            <input type="hidden" name="groupId" value={g.id} />
-            <PeopleChecklist people={addable} />
-            <button type="submit" className={button("secondary", "md")}>
-              Add to group
-            </button>
-          </form>
-        </details>
+      {invited.length > 0 && (
+        <section className="space-y-2">
+          <h2 className={sectionTitle}>Invited · waiting for an answer</h2>
+          <ul className={`${card} divide-y divide-line`}>
+            {invited.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-4 py-2.5 opacity-70">
+                <Avatar name={p.name} image={p.image} size={32} />
+                <span className="flex-1 min-w-0 truncate font-bold">{p.name}</span>
+                <form action={cancelInviteAction}>
+                  <input type="hidden" name="groupId" value={g.id} />
+                  <input type="hidden" name="userId" value={p.id} />
+                  <button className={button("quiet")}>Cancel</button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
+
+      <details className={card}>
+        <summary className="px-4 py-3 font-bold cursor-pointer">Add people</summary>
+        <form action={addMembersAction} className="px-4 pb-4 space-y-3">
+          <input type="hidden" name="groupId" value={g.id} />
+          <PeopleAdder
+            people={addable.map((u) => ({ id: u.id, name: u.name, image: u.image }))}
+            directIds={conns.accepted.map((u) => u.id)}
+            excludeIds={[...g.people.map((p) => p.id), ...invited.map((p) => p.id)]}
+          />
+          <p className="text-xs text-muted">Your connections join right away; anyone else gets an invite to accept.</p>
+          <button type="submit" className={button("secondary", "md")}>
+            Add to group
+          </button>
+        </form>
+      </details>
 
       <section className="space-y-2">
         <h2 className={sectionTitle}>Settings</h2>
         <div className={`${card} p-4 space-y-4`}>
           <form action={renameGroupAction} className="flex gap-2">
             <input type="hidden" name="groupId" value={g.id} />
-            <input name="name" required maxLength={60} defaultValue={g.name} aria-label="Group name" className={input("md", "flex-1 w-auto min-w-0")} />
+            <input name="name" required maxLength={60} defaultValue={g.name} aria-label="Group name" autoComplete="off" data-1p-ignore data-lpignore="true" className={input("md", "flex-1 w-auto min-w-0")} />
             <button type="submit" className={button("secondary", "md")}>
               Rename
             </button>

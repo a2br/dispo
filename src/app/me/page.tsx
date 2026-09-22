@@ -77,9 +77,9 @@ export default async function MePage() {
           {user.shareCode ? (
             <div className="flex flex-wrap items-center gap-2">
               <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}`} title={`${user.name.split(" ")[0]}’s week`} text="When I’m free this week:" label="Share link" variant="primary" />
-              <Link href={`/s/${user.shareCode}`} className={button("secondary")}>
-                Preview
-              </Link>
+              <a href={`/s/${user.shareCode}`} target="_blank" rel="noopener" className={button("secondary")}>
+                Preview ↗
+              </a>
               <form action={setPublicLink}>
                 <input type="hidden" name="on" value="1" />
                 <button className={button("quiet")} title="Make a new link; the old one stops working">

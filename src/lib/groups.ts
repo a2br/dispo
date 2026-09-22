@@ -70,24 +70,96 @@ async function addableSubset(viewerId: string, ids: string[]): Promise<string[]>
   return wanted.filter((id) => ok.has(id));
 }
 
+/**
+ * Split a list of picked people: connections and group-mates are added directly, anyone else who
+ * has an account gets an invitation to accept or decline on their Now tab.
+ */
+async function splitPicks(viewerId: string, ids: string[]): Promise<{ direct: string[]; invite: string[] }> {
+  const wanted = [...new Set(ids.map((s) => s.trim()).filter((s) => s && s !== viewerId))];
+  const direct = await addableSubset(viewerId, wanted);
+  const others = wanted.filter((id) => !direct.includes(id));
+  const existing = others.length ? await db.select({ id: schema.users.id }).from(schema.users).where(inArray(schema.users.id, others)) : [];
+  return { direct, invite: existing.map((u) => u.id) };
+}
+
+async function applyPicks(viewerId: string, groupId: string, current: string[], picks: { direct: string[]; invite: string[] }) {
+  const pending = await db.select({ id: schema.groupInvites.userId }).from(schema.groupInvites).where(eq(schema.groupInvites.groupId, groupId));
+  let room = MAX_GROUP_MEMBERS - current.length - pending.length;
+  const direct = picks.direct.filter((id) => !current.includes(id)).slice(0, Math.max(0, room));
+  room -= direct.length;
+  const invite = picks.invite.filter((id) => !current.includes(id) && !pending.some((p) => p.id === id)).slice(0, Math.max(0, room));
+  if (direct.length) await db.insert(schema.savedGroupMembers).values(direct.map((userId) => ({ groupId, userId }))).onConflictDoNothing();
+  if (invite.length)
+    await db
+      .insert(schema.groupInvites)
+      .values(invite.map((userId) => ({ groupId, userId, invitedBy: viewerId, createdAt: Date.now() })))
+      .onConflictDoNothing();
+}
+
 export async function createGroup(ownerId: string, name: string, memberIds: string[]): Promise<{ id: string; inviteCode: string }> {
   await dbReady;
   const id = crypto.randomUUID();
   const inviteCode = newCode();
-  const members = (await addableSubset(ownerId, memberIds)).slice(0, MAX_GROUP_MEMBERS - 1);
-  await db.transaction(async (tx) => {
-    await tx.insert(schema.savedGroups).values({ id, ownerId, name: cleanName(name) || "Untitled group", inviteCode, createdAt: Date.now() });
-    await tx.insert(schema.savedGroupMembers).values([ownerId, ...members].map((userId) => ({ groupId: id, userId })));
-  });
+  await db.insert(schema.savedGroups).values({ id, ownerId, name: cleanName(name) || "Untitled group", inviteCode, createdAt: Date.now() });
+  await db.insert(schema.savedGroupMembers).values({ groupId: id, userId: ownerId });
+  await applyPicks(ownerId, id, [ownerId], await splitPicks(ownerId, memberIds));
   return { id, inviteCode };
 }
 
 export async function addMembers(viewerId: string, groupId: string, ids: string[]): Promise<void> {
   const g = await getGroup(viewerId, groupId);
   if (!g) return;
-  const room = MAX_GROUP_MEMBERS - g.people.length;
-  const add = (await addableSubset(viewerId, ids)).filter((id) => !g.people.some((p) => p.id === id)).slice(0, Math.max(0, room));
-  if (add.length) await db.insert(schema.savedGroupMembers).values(add.map((userId) => ({ groupId, userId }))).onConflictDoNothing();
+  await applyPicks(viewerId, groupId, g.people.map((p) => p.id), await splitPicks(viewerId, ids));
+}
+
+// ---------- invitations ----------
+
+export type PendingInvite = { group: SavedGroup; inviter: User; people: User[] };
+
+/** Invitations waiting for this person, oldest first. */
+export async function invitesFor(userId: string): Promise<PendingInvite[]> {
+  await dbReady;
+  const rows = await db.select().from(schema.groupInvites).where(eq(schema.groupInvites.userId, userId)).orderBy(asc(schema.groupInvites.createdAt));
+  if (!rows.length) return [];
+  const groups = await db.select().from(schema.savedGroups).where(inArray(schema.savedGroups.id, rows.map((r) => r.groupId)));
+  const members = await memberRows(groups.map((g) => g.id));
+  const inviters = await db.select().from(schema.users).where(inArray(schema.users.id, rows.map((r) => r.invitedBy)));
+  return rows.flatMap((r) => {
+    const group = groups.find((g) => g.id === r.groupId);
+    const inviter = inviters.find((u) => u.id === r.invitedBy);
+    if (!group || !inviter) return [];
+    return [{ group, inviter, people: members.filter((m) => m.groupId === group.id).map((m) => m.u) }];
+  });
+}
+
+/** People invited to a group who haven't answered yet (visible to members). */
+export async function pendingInvitees(groupId: string): Promise<User[]> {
+  await dbReady;
+  const rows = await db
+    .select({ u: schema.users })
+    .from(schema.groupInvites)
+    .innerJoin(schema.users, eq(schema.users.id, schema.groupInvites.userId))
+    .where(eq(schema.groupInvites.groupId, groupId));
+  return rows.map((r) => r.u);
+}
+
+export async function answerInvite(userId: string, groupId: string, accept: boolean): Promise<boolean> {
+  await dbReady;
+  const [inv] = await db
+    .select()
+    .from(schema.groupInvites)
+    .where(and(eq(schema.groupInvites.groupId, groupId), eq(schema.groupInvites.userId, userId)))
+    .limit(1);
+  if (!inv) return false;
+  await db.delete(schema.groupInvites).where(and(eq(schema.groupInvites.groupId, groupId), eq(schema.groupInvites.userId, userId)));
+  if (accept) await db.insert(schema.savedGroupMembers).values({ groupId, userId }).onConflictDoNothing();
+  return accept;
+}
+
+/** Any member can withdraw a pending invitation. */
+export async function cancelInvite(viewerId: string, groupId: string, userId: string): Promise<void> {
+  if (!(await getGroup(viewerId, groupId))) return;
+  await db.delete(schema.groupInvites).where(and(eq(schema.groupInvites.groupId, groupId), eq(schema.groupInvites.userId, userId)));
 }
 
 export async function renameGroup(viewerId: string, groupId: string, name: string): Promise<void> {

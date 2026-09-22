@@ -9,7 +9,7 @@ import { InviteButton } from "./InviteButton";
 import { ExternalLink } from "./ExternalLink";
 import { PersonRow } from "./PersonRow";
 
-export function SearchBox({ autoFocus = false, inviteUrl }: { autoFocus?: boolean; inviteUrl?: string }) {
+export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search anyone at EPFL by name" }: { autoFocus?: boolean; inviteUrl?: string; placeholder?: string }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<PersonView[] | null>(null);
   const [directory, setDirectory] = useState<DirectoryPerson[]>([]);
@@ -66,7 +66,8 @@ export function SearchBox({ autoFocus = false, inviteUrl }: { autoFocus?: boolea
           autoFocus={autoFocus}
           value={q}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="Search anyone at EPFL by name"
+          placeholder={placeholder}
+          autoComplete="off"
           className={input("lg", "pl-10")}
         />
       </div>

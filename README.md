@@ -16,6 +16,8 @@ IS-Academia timetables, which live behind Gaspar and have no shared calendar ser
   link. Each group has one page (`/groups/<id>`): when everyone is next free, "Open in calendar",
   members, invite link, add people, rename, leave (creator can delete). Make one with "Create
   group" on Now. The calendar never offers to create a group: looking at someone stays silent.
+  Your connections (and group-mates) are added directly; anyone else on dispo gets an invitation,
+  shown as an Accept/Decline prompt on their Now tab. Pending invites are listed on the group page.
 - Calendar: one place for your week and for comparing with others. It only chooses who is in
   view: "+ People" opens one list (search, your groups, your people with tick boxes). On its own it
   shows your week; with people it switches to the side-by-side comparison. When the view is
@@ -51,7 +53,8 @@ sidebar, friends get a timeline of their day, and pages spread into columns.
 
 ## Home ("Now")
 
-What people open the app for: who can I see, and when? So it leads with one "Your people" list (pinned first, then free, then busy greyed out, then no schedule), then groups
+What people open the app for: who can I see, and when? "Find anyone at EPFL" sits at the top,
+then one "Your people" list (pinned first, then free, then busy greyed out, then no schedule), then groups
 with the next time everyone is free. New accounts get a two-step checklist (add schedule, bring
 your people) instead. Search, Classmates and pending requests follow. Your own status lives at the
 top of Me, not on Now. Stars pin people and groups

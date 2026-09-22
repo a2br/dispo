@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
-import { appUrl, getUser } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import { STALE_MS, eventsBetween, getCalendar, refreshCalendar, statusFrom } from "@/lib/calendar";
 import { mergeBlocks } from "@/lib/blocks";
 import { inviteCodeFor, userByShareCode } from "@/lib/invites";
@@ -10,7 +10,6 @@ import { busyViews, statusView } from "@/lib/present";
 import { addDays, dayStartOf, isoDate, nowMs, todayIndexInWeek, weekStartFromParam, weekStartOf } from "@/lib/time";
 import { button, card } from "@/lib/ui";
 import { Avatar } from "@/components/Avatar";
-import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { SignIn } from "@/components/SignIn";
 import { StatusPill } from "@/components/StatusPill";
 import { WeekNav } from "@/components/WeekNav";
@@ -36,8 +35,9 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
   const sp = await searchParams;
   const owner = await userByShareCode(code);
   if (!owner) notFound();
-  const viewer = await getUser();
-  const isOwner = viewer?.id === owner.id;
+  const signedIn = await getUser();
+  // The owner previews exactly what visitors see.
+  const viewer = signedIn?.id === owner.id ? null : signedIn;
   const first = firstName(owner.name);
   const now = nowMs();
   const weekStart = weekStartFromParam(typeof sp.w === "string" ? sp.w : undefined);
@@ -48,9 +48,7 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
     : [[], []];
   const joinNext = `/i/${await inviteCodeFor(owner)}/accept`; // signing up connects them with the owner
 
-  const nudge = isOwner ? (
-    <ShareLinkButton url={`${appUrl()}/s/${code}`} title={`${first}’s week`} text="When I’m free this week:" label="Share" variant="secondary" />
-  ) : viewer ? (
+  const nudge = viewer ? (
     <Link href={`/calendar?with=${owner.id}`} className={button("secondary")}>
       Compare with mine
     </Link>
@@ -64,14 +62,12 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
     <main className={`mx-auto max-w-5xl flex flex-col ${viewer ? "h-[calc(100dvh-var(--nav-h))]" : "min-h-dvh"} py-4 md:py-8 gap-3`}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0">
         <Avatar name={owner.name} image={owner.image} size={44} />
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-[9rem]">
           <h1 className="text-xl font-bold tracking-tight truncate">{first}’s week</h1>
           {cal && <StatusPill status={statusView(statusFrom(today, now), "busy")} />}
         </div>
-        <div className="w-full sm:w-auto">{nudge}</div>
+        <div className="ml-auto">{nudge}</div>
       </header>
-
-      {isOwner && <p className="shrink-0 text-xs text-muted">This is your public link. Anyone with it sees your free/busy, without course names or rooms. Turn it off in Me.</p>}
 
       {cal ? (
         <>

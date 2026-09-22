@@ -5,12 +5,13 @@ import { dayStartOf, nowMs } from "@/lib/time";
 import { appUrl, getUser } from "@/lib/auth";
 import { Fineprint, SignIn } from "@/components/SignIn";
 import { connectionsOf, getCalendar, statusesFor, todayBlocksFor, usersWithCalendar, type Status } from "@/lib/calendar";
-import { listGroups } from "@/lib/groups";
+import { invitesFor, listGroups } from "@/lib/groups";
+import { GroupInviteModal } from "@/components/GroupInviteModal";
 import { inviteCodeFor } from "@/lib/invites";
 import { nextCommonSlots } from "@/lib/nextSlot";
 import { starsOf } from "@/lib/stars";
 import { GroupCards } from "@/components/GroupCards";
-import { InviteActions } from "@/components/InviteActions";
+import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { CourseChips } from "@/components/CourseChips";
 import { TodayScale, TodayStrip } from "@/components/TodayStrip";
 import { publicPerson } from "@/lib/present";
@@ -26,13 +27,14 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   if (!user) return <Landing error={typeof sp.error === "string" ? sp.error : undefined} />;
 
   const now = nowMs();
-  const [cal, conns, groups, { mine, classmates }, inviteCode, stars] = await Promise.all([
+  const [cal, conns, groups, { mine, classmates }, inviteCode, stars, invites] = await Promise.all([
     getCalendar(user.id),
     connectionsOf(user.id),
     listGroups(user.id),
     features.classmates ? classmatesFor(user) : Promise.resolve({ mine: [], classmates: [] }),
     inviteCodeFor(user),
     starsOf(user.id),
+    invitesFor(user.id),
   ]);
   const inviteUrl = `${appUrl()}/i/${inviteCode}`;
   const ids = [
@@ -87,10 +89,16 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
   return (
     <main className="py-6 md:py-10 space-y-6">
+      {invites.length > 0 && <GroupInviteModal invite={invites[0]} more={invites.length - 1} />}
       <header className="flex items-baseline justify-between gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Who’s free?</h1>
         <span className="text-xs md:text-sm text-muted whitespace-nowrap">{new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" }).format(now)}</span>
       </header>
+
+      {/* Front and center: anyone at EPFL, on dispo or not (not-yet-members can be invited). */}
+      <section className="space-y-1.5">
+        <SearchBox inviteUrl={inviteUrl} placeholder="Find anyone at EPFL" />
+      </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
         {/* Main column: you, then your people split into free now / busy */}
@@ -109,9 +117,9 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                     </Link>
                   )}
                 </Step>
-                <Step n={2} done={conns.accepted.length > 0} title="Bring your people" detail="Send your link to friends, or make a group and drop its link in your group chat. Whoever signs up is connected with you automatically.">
+                <Step n={2} done={conns.accepted.length > 0} title="Bring your people" detail="Find people above, or send your link. Whoever signs up through it is connected with you automatically.">
                   {conns.accepted.length === 0 && (
-                    <InviteActions inviteUrl={inviteUrl} primary={Boolean(cal)} />
+                    <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant={cal ? "primary" : "secondary"} />
                   )}
                 </Step>
               </ol>
@@ -165,32 +173,30 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
         {/* Side column: groups, invite, search, discover */}
         <div className="space-y-6 xl:sticky xl:top-10">
-          {groups.length > 0 && (
-            <section>
-              <div className="flex items-baseline justify-between mb-2">
-                <h2 className={sectionTitle}>Groups</h2>
-                <Link href="/groups/new" className="text-sm link">
-                  Create group
-                </Link>
-              </div>
+          <section>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <h2 className={sectionTitle}>Groups</h2>
+              <Link href="/groups/new" className={button("secondary")}>
+                Create group
+              </Link>
+            </div>
+            {groups.length > 0 ? (
               <GroupCards groups={sortedGroups} next={groupNext} now={now} pinned={stars.groups} />
-            </section>
-          )}
+            ) : (
+              <p className={`${card} px-4 py-4 text-sm text-muted`}>A group is like a group chat for finding a time: everyone in it sees when you’re all free, and it comes with a link for your chat.</p>
+            )}
+          </section>
 
           {!onboarding && (
             <section className={`${card} p-4 space-y-3`}>
               <div>
-                <h2 className="font-bold">Invite people</h2>
-                <p className="text-sm text-muted">Whoever signs up through your link is connected with you. A group comes with its own link for your group chat.</p>
+                <h2 className="font-bold">Invite friends</h2>
+                <p className="text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
               </div>
-              <InviteActions inviteUrl={inviteUrl} />
+              <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="secondary" />
             </section>
           )}
 
-          <section className="space-y-2">
-            <h2 className={sectionTitle}>Find people</h2>
-            <SearchBox inviteUrl={inviteUrl} />
-          </section>
 
           {features.classmates && user.discoverable && mine.length > 0 && (
             <section>

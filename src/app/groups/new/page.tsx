@@ -5,7 +5,7 @@ import { starsOf } from "@/lib/stars";
 import { button, input, sectionTitle } from "@/lib/ui";
 import { createGroupAction } from "@/app/actions";
 import { BackButton } from "@/components/BackButton";
-import { PeopleChecklist } from "@/components/PeopleChecklist";
+import { PeopleAdder } from "@/components/PeopleAdder";
 
 export const metadata: Metadata = { title: "Create group" };
 
@@ -26,16 +26,15 @@ export default async function CreateGroupPage() {
 
         <label className="block space-y-1.5">
           <span className={sectionTitle}>Name</span>
-          <input name="name" required maxLength={60} placeholder="e.g. ADA project, Sat climbing" className={input("md")} autoFocus />
+          <input name="name" required maxLength={60} placeholder="e.g. ADA project, Sat climbing" autoComplete="off" data-1p-ignore data-lpignore="true" className={input("md")} autoFocus />
         </label>
 
         <section className="space-y-2">
-          <h2 className={sectionTitle}>Add your people {people.length > 0 && <span className="normal-case font-normal tracking-normal">· optional</span>}</h2>
-          {people.length ? (
-            <PeopleChecklist people={people} />
-          ) : (
-            <p className="text-sm text-muted border border-line px-4 py-4">You’re not connected with anyone yet. Create the group and share its link instead.</p>
-          )}
+          <h2 className={sectionTitle}>
+            Add people <span className="normal-case font-normal tracking-normal">· optional</span>
+          </h2>
+          <PeopleAdder people={people.map((u) => ({ id: u.id, name: u.name, image: u.image }))} directIds={people.map((u) => u.id)} excludeIds={[user.id]} />
+          <p className="text-xs text-muted">Your connections are added right away. Anyone else gets an invite they can accept or decline.</p>
         </section>
 
         <div className="space-y-2">

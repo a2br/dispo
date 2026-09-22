@@ -102,6 +102,24 @@ export const savedGroupMembers = sqliteTable(
   (t) => [primaryKey({ columns: [t.groupId, t.userId] })],
 );
 
+/** Pending group invitations for people the inviter isn't connected with. They accept or decline on Now. */
+export const groupInvites = sqliteTable(
+  "group_invites",
+  {
+    groupId: text("group_id")
+      .notNull()
+      .references(() => savedGroups.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    invitedBy: text("invited_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.groupId, t.userId] }), index("group_invites_user_idx").on(t.userId)],
+);
+
 /** Quick-access favourites: starred people and groups appear as chips in the calendar. */
 export const stars = sqliteTable(
   "stars",

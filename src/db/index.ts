@@ -83,6 +83,10 @@ async function migrate(client: Client) {
   if (!names.has("invite_code"))
     await client.execute("ALTER TABLE users ADD COLUMN invite_code TEXT");
   if (!names.has("share_code")) await client.execute("ALTER TABLE users ADD COLUMN share_code TEXT");
+  await client.execute(
+    "CREATE TABLE IF NOT EXISTS group_invites (group_id TEXT NOT NULL REFERENCES saved_groups(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, invited_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at INTEGER NOT NULL, PRIMARY KEY (group_id, user_id))",
+  );
+  await client.execute("CREATE INDEX IF NOT EXISTS group_invites_user_idx ON group_invites(user_id)");
   await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_share_code_idx ON users(share_code)");
   const gcols = await client.execute("PRAGMA table_info(saved_groups)");
   if (!gcols.rows.some((r) => String(r.name) === "invite_code"))
