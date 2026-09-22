@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { devLoginEnabled, googleConfigured } from "@/lib/auth";
 import { button, input } from "@/lib/ui";
 
@@ -30,7 +31,10 @@ export function SignIn({ next, label = "Continue with EPFL Google" }: { next?: s
 
 export function Fineprint() {
   return (
-    <p className="text-xs text-muted">Only @epfl.ch accounts. Your calendar link is stored encrypted and never shown to anyone.</p>
+    <p className="text-xs text-muted">
+      Only @epfl.ch accounts. Your calendar link is stored encrypted and never shown to anyone.{" "}
+      <Link href="/privacy" className="underline">Privacy</Link>
+    </p>
   );
 }
 
