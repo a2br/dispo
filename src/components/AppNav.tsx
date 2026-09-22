@@ -76,7 +76,7 @@ export function AppNav({ me }: { me: Me }) {
       </aside>
 
       {/* Phone: bottom bar */}
-      <nav className="md:hidden fixed inset-x-0 bottom-0 z-20 bg-surface/95 backdrop-blur border-t border-line safe-bottom">
+      <nav className="md:hidden fixed inset-x-0 bottom-0 z-20 bg-background/95 backdrop-blur border-t border-line safe-bottom">
         <ul className="mx-auto max-w-2xl grid grid-cols-3">
           {items.map((it) => (
             <li key={it.href}>
