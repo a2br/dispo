@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
-import { getCalendar } from "@/lib/calendar";
-import { relativeAge, nowMs } from "@/lib/time";
+import { eventsBetween, getCalendar, statusFrom } from "@/lib/calendar";
+import { statusView } from "@/lib/present";
+import { StatusPill } from "@/components/StatusPill";
+import { dayStartOf, relativeAge, nowMs } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
 import { DiscoverToggle } from "@/components/DiscoverToggle";
 import { PhoneForm } from "@/components/PhoneForm";
-import { button } from "@/lib/ui";
+import { button, card, sectionTitle } from "@/lib/ui";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
 import { refreshMyCalendar, removeMyCalendar, setVisibility, signOut } from "@/app/actions";
 import type { Visibility } from "@/db/schema";
@@ -22,17 +24,28 @@ const OPTIONS: { value: Visibility; title: string; desc: string }[] = [
 export default async function MePage() {
   const user = await requireUser();
   const cal = await getCalendar(user.id);
+  const today = cal ? await eventsBetween(user.id, dayStartOf(nowMs()), dayStartOf(nowMs()) + 86_400_000) : [];
   const now = nowMs();
 
   return (
     <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-6">
       <header className="flex items-center gap-3">
         <Avatar name={user.name} image={user.image} size={52} />
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold tracking-tight truncate">{user.name}</h1>
           <p className="text-sm text-muted truncate">{user.email}</p>
         </div>
       </header>
+
+      {cal && (
+        <Link href="/calendar" className={`${card} group flex items-center gap-3 px-4 py-3 hover:border-foreground`}>
+          <span className="flex-1 min-w-0">
+            <span className={`${sectionTitle} block mb-0.5`}>Right now</span>
+            <StatusPill status={statusView(statusFrom(today, now), "full")} />
+          </span>
+          <span className="text-sm link whitespace-nowrap">My week</span>
+        </Link>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Who can see my schedule</h2>

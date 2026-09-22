@@ -134,7 +134,7 @@ export async function setStarAction(kind: "user" | "group", targetId: string, on
 
 // ---------- groups (group-chat style: shared with every member) ----------
 
-/** New group from the "New group" screen: you + the connections you picked; opens its page. */
+/** "Create group": you + the people you picked; opens the group's page. */
 export async function createGroupAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   const members = formData.getAll("member").map(String);

@@ -97,22 +97,14 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </header>
 
       <div className="shrink-0 space-y-2">
-        <PeoplePicker friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
-        {comparing && (
+        <PeoplePicker me={{ id: viewer.id, name: viewer.name, image: viewer.image }} friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
+        {/* Looking stays silent: the calendar never offers to create a group, it only links to one you're in. */}
+        {match && (
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            {match ? (
-              <Link href={`/groups/${match.id}`} className={button("secondary", "sm")}>
-                <span className="text-muted font-normal">★</span> {match.name}
-                <span className="text-muted font-normal">· group page</span>
-              </Link>
-            ) : (
-              <Link
-                href={`/groups/new?${new URLSearchParams({ with: selected.map((m) => m.id).join(","), from: `/calendar?${new URLSearchParams(baseParams)}` })}`}
-                className={button("quiet", "sm", "-ml-3")}
-              >
-                Save these people as a group
-              </Link>
-            )}
+            <Link href={`/groups/${match.id}`} className={button("secondary", "sm")}>
+              <span className="text-muted font-normal">★</span> {match.name}
+              <span className="text-muted font-normal">· group page</span>
+            </Link>
           </div>
         )}
       </div>

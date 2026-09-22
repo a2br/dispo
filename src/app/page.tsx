@@ -4,17 +4,16 @@ import { Wordmark } from "@/components/Wordmark";
 import { dayStartOf, nowMs } from "@/lib/time";
 import { appUrl, getUser } from "@/lib/auth";
 import { Fineprint, SignIn } from "@/components/SignIn";
-import { connectionsOf, eventsBetween, getCalendar, statusFrom, statusesFor, todayBlocksFor, usersWithCalendar, type Status } from "@/lib/calendar";
+import { connectionsOf, getCalendar, statusesFor, todayBlocksFor, usersWithCalendar, type Status } from "@/lib/calendar";
 import { listGroups } from "@/lib/groups";
 import { inviteCodeFor } from "@/lib/invites";
 import { nextCommonSlots } from "@/lib/nextSlot";
 import { starsOf } from "@/lib/stars";
 import { GroupCards } from "@/components/GroupCards";
 import { InviteActions } from "@/components/InviteActions";
-import { StatusPill } from "@/components/StatusPill";
 import { CourseChips } from "@/components/CourseChips";
 import { TodayScale, TodayStrip } from "@/components/TodayStrip";
-import { publicPerson, statusView } from "@/lib/present";
+import { publicPerson } from "@/lib/present";
 import { classmatesFor } from "@/lib/classmates";
 import { features } from "@/lib/features";
 import { PersonRow } from "@/components/PersonRow";
@@ -41,11 +40,10 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       [user.id, ...conns.accepted, ...conns.incoming, ...conns.outgoing, ...classmates.slice(0, 30).map((c) => c.user)].map((u) => (typeof u === "string" ? u : u.id)),
     ),
   ];
-  const [statuses, blocks, calIds, myToday, groupNext] = await Promise.all([
+  const [statuses, blocks, calIds, groupNext] = await Promise.all([
     statusesFor(ids),
     todayBlocksFor(conns.accepted.map((u) => u.id), now),
     usersWithCalendar(conns.accepted.map((u) => u.id)),
-    cal ? eventsBetween(user.id, dayStartOf(now), dayStartOf(now) + 86_400_000) : Promise.resolve([]),
     nextCommonSlots(groups.map((g) => ({ id: g.id, userIds: [user.id, ...g.members.map((m) => m.id)] })), now),
   ]);
   const view = (u: (typeof conns.accepted)[number]) => publicPerson(u, statuses.get(u.id) ?? { state: "unknown" });
@@ -97,16 +95,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
         {/* Main column: you, then your people split into free now / busy */}
         <div className="space-y-6 min-w-0">
-          {cal && (
-            <Link href="/calendar" className={`${card} group flex items-center gap-3 px-4 py-3 hover:border-foreground`}>
-              <span className="text-xs font-bold uppercase tracking-wide text-muted w-10 shrink-0">You</span>
-              <span className="flex-1 min-w-0">
-                <StatusPill status={statusView(statusFrom(myToday, now), "full")} />
-              </span>
-              <span className="text-sm link whitespace-nowrap">My week</span>
-            </Link>
-          )}
-
           {onboarding && (
             <section className={`${card} p-4 space-y-4`}>
               <div>
@@ -182,7 +170,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               <div className="flex items-baseline justify-between mb-2">
                 <h2 className={sectionTitle}>Groups</h2>
                 <Link href="/groups/new" className="text-sm link">
-                  New group
+                  Create group
                 </Link>
               </div>
               <GroupCards groups={sortedGroups} next={groupNext} now={now} pinned={stars.groups} />

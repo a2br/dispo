@@ -14,7 +14,7 @@ export type PickerGroup = { id: string; name: string; memberIds: string[] };
  * Chooses who is on the calendar — nothing else. The view lives in the URL (?with=).
  * "+ People" opens one list: search, your groups (tap to show one), your people (tap to toggle).
  */
-export function PeoplePicker({ friends, selected, groups, week }: { friends: Person[]; selected: Person[]; groups: PickerGroup[]; week: string | null }) {
+export function PeoplePicker({ me, friends, selected, groups, week }: { me: Person; friends: Person[]; selected: Person[]; groups: PickerGroup[]; week: string | null }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -55,7 +55,7 @@ export function PeoplePicker({ friends, selected, groups, week }: { friends: Per
     <section className={`transition-opacity duration-150 ${pending ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className={chip("pl-1")}>
-          <span className="size-5 rounded-sm bg-foreground" aria-hidden />
+          <Avatar name={me.name} image={me.image} size={20} />
           You
         </span>
         {selected.map((p) => (
