@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
   discoverable INTEGER NOT NULL DEFAULT 1,
   phone TEXT,
   invite_code TEXT,
+  share_code TEXT,
   created_at INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email);
@@ -81,6 +82,8 @@ async function migrate(client: Client) {
     await client.execute("ALTER TABLE users ADD COLUMN phone TEXT");
   if (!names.has("invite_code"))
     await client.execute("ALTER TABLE users ADD COLUMN invite_code TEXT");
+  if (!names.has("share_code")) await client.execute("ALTER TABLE users ADD COLUMN share_code TEXT");
+  await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_share_code_idx ON users(share_code)");
   const gcols = await client.execute("PRAGMA table_info(saved_groups)");
   if (!gcols.rows.some((r) => String(r.name) === "invite_code"))
     await client.execute(

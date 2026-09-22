@@ -7,6 +7,7 @@ import { db, dbReady, schema } from "@/db";
 import type { Visibility } from "@/db/schema";
 import { destroySession, getUser, requireUser, safeNext } from "@/lib/auth";
 import { setStar } from "@/lib/stars";
+import { newCode } from "@/lib/codes";
 import { connectCalendar, disconnectCalendar, refreshCalendar } from "@/lib/calendar";
 import { IcsError } from "@/lib/ics";
 import { connectionBetween } from "@/lib/access";
@@ -71,6 +72,15 @@ export async function setPhone(_prev: PhoneState, formData: FormData): Promise<P
   await db.update(schema.users).set({ phone: phone || null }).where(eq(schema.users.id, user.id));
   revalidatePath("/", "layout");
   return { ok: phone ? "Saved" : "Removed" };
+}
+
+/** Turn the public view-only link on (fresh code, which also revokes any old link) or off. */
+export async function setPublicLink(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const on = formData.get("on") === "1";
+  await dbReady;
+  await db.update(schema.users).set({ shareCode: on ? newCode(10) : null }).where(eq(schema.users.id, user.id));
+  revalidatePath("/", "layout");
 }
 
 export async function requestConnection(formData: FormData): Promise<void> {

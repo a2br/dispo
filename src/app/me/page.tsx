@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { requireUser } from "@/lib/auth";
+import { appUrl, requireUser } from "@/lib/auth";
+import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { eventsBetween, getCalendar, statusFrom } from "@/lib/calendar";
 import { statusView } from "@/lib/present";
 import { StatusPill } from "@/components/StatusPill";
@@ -10,7 +11,7 @@ import { DiscoverToggle } from "@/components/DiscoverToggle";
 import { PhoneForm } from "@/components/PhoneForm";
 import { button, card, sectionTitle } from "@/lib/ui";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
-import { refreshMyCalendar, removeMyCalendar, setVisibility, signOut } from "@/app/actions";
+import { refreshMyCalendar, removeMyCalendar, setPublicLink, setVisibility, signOut } from "@/app/actions";
 import type { Visibility } from "@/db/schema";
 
 export const metadata: Metadata = { title: "Me" };
@@ -65,6 +66,38 @@ export default async function MePage() {
             </button>
           </div>
         </form>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className={sectionTitle}>Public link</h2>
+        <div className={`${card} p-4 space-y-3`}>
+          <p className="text-sm text-muted">
+            A view-only link to your week that anyone can open without signing up: free/busy only, no course names or rooms.
+          </p>
+          {user.shareCode ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}`} title={`${user.name.split(" ")[0]}’s week`} text="When I’m free this week:" label="Share link" variant="primary" />
+              <Link href={`/s/${user.shareCode}`} className={button("secondary")}>
+                Preview
+              </Link>
+              <form action={setPublicLink}>
+                <input type="hidden" name="on" value="1" />
+                <button className={button("quiet")} title="Make a new link; the old one stops working">
+                  Reset link
+                </button>
+              </form>
+              <form action={setPublicLink}>
+                <input type="hidden" name="on" value="0" />
+                <button className={button("danger")}>Turn off</button>
+              </form>
+            </div>
+          ) : (
+            <form action={setPublicLink}>
+              <input type="hidden" name="on" value="1" />
+              <button className={button("secondary")}>Create public link</button>
+            </form>
+          )}
+        </div>
       </section>
 
       <section id="discover" className="space-y-2 scroll-mt-6">

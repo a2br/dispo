@@ -44,6 +44,10 @@ sidebar, friends get a timeline of their day, and pages spread into columns.
 - Personalised titles, descriptions and Open Graph images for invite and group links (first
   names only, since previews are public), plus a default card.
 - Directory search "Invite" and the home "Invite people" card use your personal link.
+- Public view-only link `/s/<code>` (opt-in in Me, off by default): your week as free/busy
+  only, no sign-up needed, noindex. It nudges visitors with an optional "See when we're both
+  free" button (top) and a sign-in card (bottom); signing up through it connects them with you.
+  "Reset link" issues a new code, which kills the old one.
 
 ## Home ("Now")
 
@@ -88,7 +92,7 @@ OIDC verification. No auth library: `src/lib/auth.ts` is the whole login flow.
 ```
 src/
   app/            routes: / (Now), /groups/new, /groups/[id], /discover (+ /discover/[key]),
-                  /calendar (?with= people), /i/[code], /g/[code],
+                  /calendar (?with= people), /i/[code], /g/[code], /s/[code] (public),
                   /u/[id] (someone's week), /setup, /me. Old /group, /classmates, /course/*
                   and ?g= links redirect.
                   flagged: /classmates, /course/[key]

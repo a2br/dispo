@@ -94,6 +94,14 @@ export async function joinGroup(viewer: User, code: string): Promise<GroupInvite
   return { ...inv, people: inv.people.some((p) => p.id === viewer.id) ? inv.people : [...inv.people, viewer] };
 }
 
+/** Public view-only schedule link. */
+export async function userByShareCode(code: string): Promise<User | null> {
+  if (!isCode(code)) return null;
+  await dbReady;
+  const [u] = await db.select().from(schema.users).where(eq(schema.users.shareCode, code)).limit(1);
+  return u ?? null;
+}
+
 export async function usersByIds(ids: string[]): Promise<User[]> {
   if (!ids.length) return [];
   await dbReady;

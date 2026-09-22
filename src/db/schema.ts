@@ -16,6 +16,8 @@ export const users = sqliteTable(
     phone: text("phone"),
     /** Personal invite link code: /i/<code>. Created on first use. */
     inviteCode: text("invite_code"),
+    /** Public view-only schedule link: /s/<code>. Null = off (opt-in, free/busy only). */
+    shareCode: text("share_code"),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email)],

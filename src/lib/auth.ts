@@ -56,15 +56,17 @@ export async function destroySession(): Promise<void> {
 export const getUser = cache(async (): Promise<User | null> => {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
+  let sub: string | undefined;
   try {
-    const { payload } = await jwtVerify(token, secret(), { algorithms: ["HS256"] });
-    if (!payload.sub) return null;
-    await dbReady;
-    const [u] = await db.select().from(schema.users).where(eq(schema.users.id, payload.sub)).limit(1);
-    return u ?? null;
+    sub = (await jwtVerify(token, secret(), { algorithms: ["HS256"] })).payload.sub;
   } catch {
-    return null;
+    return null; // bad or expired session cookie
   }
+  if (!sub) return null;
+  // Database errors are real failures: let them surface instead of silently signing people out.
+  await dbReady;
+  const [u] = await db.select().from(schema.users).where(eq(schema.users.id, sub)).limit(1);
+  return u ?? null;
 });
 
 export async function requireUser(): Promise<User> {
@@ -99,6 +101,7 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
     discoverable: true,
     phone: null,
     inviteCode: null,
+    shareCode: null,
     createdAt: Date.now(),
   };
   await db.insert(schema.users).values(u);
