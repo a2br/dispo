@@ -146,6 +146,13 @@ export default async function MePage() {
       <form action={signOut}>
         <button className={button("secondary", "md", "w-full text-muted")}>Sign out</button>
       </form>
+
+      <p className="text-center text-xs text-muted">
+        dispo is open source.{" "}
+        <a href="https://github.com/a2br/dispo" target="_blank" rel="noopener" className="link">
+          View the code on GitHub ↗
+        </a>
+      </p>
     </main>
   );
 }

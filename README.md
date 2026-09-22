@@ -173,3 +173,7 @@ Vercel + Turso is the zero-ops path:
   without the link. Less accurate for exercise groups, but zero paste.
 - Groups (a section, a project team) as a shareable list.
 - Push notification when a connection becomes free.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
