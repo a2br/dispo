@@ -145,7 +145,7 @@ Vercel + Turso is the zero-ops path:
 
 - `DATABASE_URL=libsql://…turso.io`, `DATABASE_AUTH_TOKEN=…`
 - All the other variables from `.env.example`; leave `DEV_LOGIN` empty.
-- `vercel.json` schedules `/api/cron/refresh` every 6 h. Pages also refresh a feed
+- `vercel.json` schedules `/api/cron/refresh` daily at 05:00 UTC (Hobby allows one run a day). Pages also refresh a feed
   older than 6 h in the background when someone views it.
 
 ## ICS format (verified 2026-09-22 against a real Campus-app link)
