@@ -29,7 +29,7 @@ export async function saveCalendarLink(_prev: FormState, formData: FormData): Pr
   revalidatePath("/", "layout");
   if (formData.get("then") === "stay") return { ok: `Loaded ${count} sessions.` };
   // redirect() works by throwing, so it must stay outside the try/catch above.
-  redirect(safeNext(String(formData.get("next") ?? "")) ?? "/calendar");
+  redirect(safeNext(String(formData.get("next") ?? "")) ?? "/");
 }
 
 export async function refreshMyCalendar(): Promise<void> {
