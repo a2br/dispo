@@ -24,7 +24,7 @@ export default function Privacy() {
         <ul className="list-disc pl-5 space-y-1">
           <li>From Google sign-in: your name, @epfl.ch email address and profile picture. Nothing else from your Google account.</li>
           <li>
-            The calendar link you paste from the EPFL Campus app, encrypted (AES-256-GCM). It is never shown to anyone,
+            The calendar link you paste from IS-Academia, encrypted (AES-256-GCM). It is never shown to anyone,
             including you after you save it.
           </li>
           <li>The classes in that calendar (course, time, room, teacher), refreshed a few times a day.</li>

@@ -3,6 +3,9 @@ import { requireUser, safeNext } from "@/lib/auth";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
 import { ExternalLink } from "@/components/ExternalLink";
 
+/** Opens the schedule with the iCal export pop-up already showing, so it's one tap to copy the link. */
+const ICS_EXPORT_URL = "https://campus.epfl.ch/isacademia/schedule?view=work_week#/isacademia/ics?createStack=1";
+
 export const metadata: Metadata = { title: "Add your schedule" };
 
 /** One screen, no scrolling: three short steps, then a single paste button. */
@@ -12,10 +15,11 @@ export default async function SetupPage({ searchParams }: PageProps<"/setup">) {
   const next = safeNext(typeof sp.next === "string" ? sp.next : null) ?? undefined;
   const steps: React.ReactNode[] = [
     <>
-      Open <b>EPFL Campus</b> → <b>Schedule</b> <span className="text-muted">(or <ExternalLink href="https://campus.epfl.ch">campus.epfl.ch</ExternalLink>)</span>
+      Open <ExternalLink href={ICS_EXPORT_URL}>your IS-Academia schedule</ExternalLink>{" "}
+      <span className="text-muted">(sign in with your EPFL account if asked)</span>
     </>,
     <>
-      Tap <b>⋯</b> → <b>Export</b> → <b>Copy link</b>
+      In the pop-up, tap <b>Copy ICS link</b> <span className="text-muted">(the small link under the red button)</span>
     </>,
     <>Come back and tap the button below</>,
   ];

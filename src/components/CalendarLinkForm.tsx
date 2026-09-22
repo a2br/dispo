@@ -5,7 +5,7 @@ import { saveCalendarLink, type FormState } from "@/app/actions";
 import { button, input } from "@/lib/ui";
 
 /**
- * Paste-first: on a phone the link is already on the clipboard (copied from the Campus app),
+ * Paste-first: on a phone the link is already on the clipboard (copied from IS-Academia),
  * so one tap reads it and submits. The text field stays as a fallback.
  */
 export function CalendarLinkForm({ stay = false, compact = false, next }: { stay?: boolean; compact?: boolean; next?: string }) {
@@ -19,7 +19,7 @@ export function CalendarLinkForm({ stay = false, compact = false, next }: { stay
     try {
       const text = (await navigator.clipboard.readText()).trim();
       if (!/^(https?|webcal):\/\//i.test(text)) {
-        setClipError("Your clipboard doesn’t hold a link. Copy it in the Campus app first, or paste it below.");
+        setClipError("Your clipboard doesn’t hold a link. Copy it from IS-Academia first, or paste it below.");
         return;
       }
       setValue(text);

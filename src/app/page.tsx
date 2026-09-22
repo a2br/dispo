@@ -128,7 +128,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 <p className="text-sm text-muted">Two steps and your friends’ free time shows up here.</p>
               </div>
               <ol className="space-y-3">
-                <Step n={1} done={Boolean(cal)} title="Add your schedule" detail="Paste your EPFL Campus calendar link once; it stays in sync.">
+                <Step n={1} done={Boolean(cal)} title="Add your schedule" detail="Copy your calendar link from IS-Academia and paste it once; it stays in sync.">
                   {!cal && (
                     <Link href="/setup" className={button("primary")}>
                       Add schedule
@@ -287,7 +287,7 @@ function Landing({ error }: { error?: string }) {
       </div>
       <ol className="space-y-2 text-sm text-muted">
         <li className="flex gap-3"><span className="font-bold text-foreground">1</span> Sign in with your EPFL Google account.</li>
-        <li className="flex gap-3"><span className="font-bold text-foreground">2</span> Paste the calendar link from the EPFL Campus app, once.</li>
+        <li className="flex gap-3"><span className="font-bold text-foreground">2</span> Copy your calendar link from IS-Academia and paste it, once.</li>
         <li className="flex gap-3"><span className="font-bold text-foreground">3</span> Invite friends or a group chat and see when everyone’s free.</li>
       </ol>
       {error && <p className="bg-busy/10 text-busy px-4 py-3 text-sm">{error}</p>}
