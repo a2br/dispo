@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# dispo
 
-## Getting Started
+"Who's free?" for EPFL. Like peeking at a coworker's Google Calendar, but for
+IS-Academia timetables, which live behind Gaspar and have no shared calendar server.
 
-First, run the development server:
+- Sign in with the EPFL Google account (Google for Education, restricted to `hd=epfl.ch`).
+- Paste the calendar link from the EPFL Campus app once. The server keeps it in sync.
+- Search anyone by name. Timetables are shared with everyone at EPFL by default, like a
+  company calendar; "connections see details" and "connections only" are opt-in.
+- Search also queries the public EPFL directory (the JSON endpoint behind search.epfl.ch,
+  `src/lib/directory.ts`) and lists matches who aren't on dispo yet with an Invite button.
+  Invite opens the share sheet or an email draft; the app never sends anything itself.
+  People who hide their directory profile don't appear. Private dispo users are shown as
+  "not on dispo" so their membership stays hidden.
+- Groups: save a selection of friends under a name and open its availability in one tap
+  from the home screen. Private to you; editing people while a group is open edits the group.
+- Find a time: pick several friends and see everyone's free/busy side by side for a day,
+  plus the slots this week (08:00–19:00, 30 min or more) where you're all free. Shows only
+  merged busy blocks, never course names.
+- Classmates (off by default, `FEATURE_CLASSMATES=1`): people ranked by shared courses and a
+  page per course. It's a discovery use case, separate from checking friends, so it lives
+  behind a switch and its own tab. Only courses in common are revealed.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Mobile-first PWA (add to home screen). On tablets and laptops the bottom bar becomes a
+sidebar, friends get a timeline of their day, and pages spread into columns.
+
+## Stack
+
+Next.js 16 (App Router, server actions), Tailwind 4, Drizzle + libsql (SQLite file
+locally, Turso in production), `node-ical`, `jose` for the session cookie and Google
+OIDC verification. No auth library: `src/lib/auth.ts` is the whole login flow.
+
+```
+src/
+  app/            routes: / (friends + search), /group (find a time, ?g= saved group), /u/[id] (week), /setup, /me
+                  flagged: /classmates, /course/[key]
+  app/api/auth    google, callback, signout, dev (local only)
+  app/api/cron    refresh  — re-fetch stale feeds, protected by CRON_SECRET
+  app/api/search  name search (JSON)
+  components/     AppNav (sidebar / bottom bar), WeekView (day timeline on phones, week grid on md+),
+                  GroupWeek, GroupPicker, TodayStrip, SearchBox, …
+  lib/            auth, calendar (ingest/refresh/queries), blocks (academic quarter), groupcalc, groups,
+                  classmates (flagged), features, ics, access, time
+  db/             schema + client (tables auto-created on first use)
+scripts/seed-dev.ts   fake users sharing your feed, for local testing
+scripts/add-user.ts   create a real user from an email, name and ICS link
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Run locally
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cp .env.example .env.local     # then fill AUTH_SECRET, ICS_ENCRYPTION_KEY, CRON_SECRET
+pnpm install
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Without Google credentials set `DEV_LOGIN="1"` and use the dev-login box on the landing
+page (any `@epfl.ch` address). `ICS_URL=<your link>` in `.env.local` lets
+`node --env-file=.env.local --import tsx scripts/seed-dev.ts` create a few fake people.
 
-## Learn More
+## Google sign-in
 
-To learn more about Next.js, take a look at the following resources:
+1. Google Cloud console → APIs & Services → Credentials → OAuth client ID, type *Web application*.
+2. Authorized redirect URI: `$APP_URL/api/auth/callback`.
+3. Put the client id/secret in `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+4. The consent screen can stay in "Testing" for internal use, or be set to *Internal* if the
+   project lives in an EPFL Google Workspace org.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+The server checks the ID token's `hd` claim and the email domain, so a non-EPFL Google
+account cannot get a session even if it reaches the callback.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
+Vercel + Turso is the zero-ops path:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `DATABASE_URL=libsql://…turso.io`, `DATABASE_AUTH_TOKEN=…`
+- All the other variables from `.env.example`; leave `DEV_LOGIN` empty.
+- `vercel.json` schedules `/api/cron/refresh` every 6 h. Pages also refresh a feed
+  older than 6 h in the background when someone views it.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## ICS format (verified 2026-09-22 against a real Campus-app link)
+
+- URL: `https://campus.epfl.ch/deploy/backend_proxy/<id>/raw-isacademia?action=get_ics&key=<token>`.
+  The `key` is a bearer token: anyone with the URL gets the schedule. Stored AES-GCM encrypted, never logged or displayed.
+- Live feed, not a one-shot file: `X-PUBLISHED-TTL:PT6H`, generated by PocketCampus (iCal4j).
+  Covers the current semester (~14 weeks). Presumably rolls over to spring on its own (to confirm in January).
+- ~200 discrete VEVENTs, one per session. No RRULE/EXDATE on events (the only RRULEs
+  are DST rules in VTIMEZONE), so no recurrence expansion is needed.
+- `SUMMARY`: `<Course name> (<Kind>)` with Kind in {Courses, Exercises, Lab, Project}.
+- `LOCATION`: room(s), comma-separated when several. Rarely absent.
+- `DESCRIPTION`: Moodle link, `Course Code\n<CS-433>`, room map links, teacher + directory id.
+- `DTSTART/DTEND` with `TZID=Europe/Zurich`; sessions start at :15 (the academic quarter).
+  `src/lib/blocks.ts` snaps those starts to the full hour and merges touching sessions, so
+  13:15–14:00 + 14:15–15:00 reads as 13:00–15:00. Statuses and free/busy views use the merged
+  blocks; the detailed view keeps the real times.
+- Stable numeric `UID`s: refresh upserts on UID and deletes what disappeared.
+
+## Ideas not built yet
+
+- Highlight shared sessions in a classmate's week view.
+- Course-picker onboarding (derive a schedule from public course timetables) for people
+  without the link. Less accurate for exercise groups, but zero paste.
+- Groups (a section, a project team) as a shareable list.
+- Push notification when a connection becomes free.
