@@ -61,7 +61,7 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
   return (
     <main className={`mx-auto max-w-5xl flex flex-col ${viewer ? "h-[calc(100dvh-var(--nav-h))]" : "min-h-dvh"} py-4 md:py-8 gap-3`}>
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0">
-        <Avatar name={owner.name} image={owner.image} size={44} />
+        <Avatar name={owner.name} size={44} />
         <div className="flex-1 min-w-[9rem]">
           <h1 className="text-xl font-bold tracking-tight truncate">{first}’s week</h1>
           {cal && <StatusPill status={statusView(statusFrom(today, now), "busy")} />}

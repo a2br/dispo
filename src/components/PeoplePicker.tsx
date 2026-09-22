@@ -7,7 +7,7 @@ import type { PersonView } from "@/lib/present";
 import { button, chip, iconButton, input } from "@/lib/ui";
 import { Avatar } from "./Avatar";
 
-type Person = { id: string; name: string; image: string | null };
+type Person = { id: string; name: string };
 export type PickerGroup = { id: string; name: string; memberIds: string[] };
 
 /**
@@ -55,12 +55,12 @@ export function PeoplePicker({ me, friends, selected, groups, week }: { me: Pers
     <section className={`transition-opacity duration-150 ${pending ? "opacity-60" : ""}`}>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className={chip("pl-1")}>
-          <Avatar name={me.name} image={me.image} size={20} />
+          <Avatar name={me.name} size={20} />
           You
         </span>
         {selected.map((p) => (
           <span key={p.id} className={chip("pl-1 pr-0.5 animate-in")}>
-            <Avatar name={p.name} image={p.image} size={20} />
+            <Avatar name={p.name} size={20} />
             <span className="max-w-[9rem] truncate">{p.name.split(" ")[0]}</span>
             <button onClick={() => toggle(p.id)} aria-label={`Remove ${p.name} from the view`} className={iconButton("quiet", "sm", "size-7")}>
               ×
@@ -125,7 +125,7 @@ export function PeoplePicker({ me, friends, selected, groups, week }: { me: Pers
                 return (
                   <li key={p.id}>
                     <button onClick={() => toggle(p.id)} aria-pressed={on} className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-subtle">
-                      <Avatar name={p.name} image={p.image} size={32} />
+                      <Avatar name={p.name} size={32} />
                       <span className="flex-1 min-w-0 truncate font-bold">{p.name}</span>
                       <span className={`size-5 rounded-sm border grid place-items-center text-xs ${on ? "bg-foreground border-foreground text-background" : "border-line-strong"}`} aria-hidden>
                         {on ? "✓" : ""}

@@ -22,6 +22,7 @@ import { PersonRow } from "@/components/PersonRow";
 import { SearchBox } from "@/components/SearchBox";
 import { acceptConnection, dismissInviteCard, removeConnection } from "./actions";
 import { CloseIcon } from "@/components/Icons";
+import { LiveClock } from "@/components/LiveClock";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const user = await getUser();
@@ -95,7 +96,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       {invites.length > 0 && <GroupInviteModal invite={invites[0]} more={invites.length - 1} />}
       <header className="flex items-baseline justify-between gap-3">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Who’s free?</h1>
-        <span className="text-xs md:text-sm text-muted whitespace-nowrap">{new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" }).format(now)}</span>
+        <LiveClock now={now} className="text-xs md:text-sm text-muted whitespace-nowrap" />
       </header>
 
       {!onboarding && !user.hideInviteCard && (

@@ -44,7 +44,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
     return (
       <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-5">
         <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
-          <Avatar name={target.name} image={target.image} size={44} />
+          <Avatar name={target.name} size={44} />
           <div className="flex-1 min-w-[9rem]">
             <h1 className="text-xl font-bold tracking-tight truncate">{target.name}</h1>
             <p className="text-sm text-muted">{needsSchedule ? "Add your schedule to see" : "Schedule is private"}</p>
@@ -93,7 +93,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
   return (
     <main className="mx-auto max-w-5xl flex flex-col h-[calc(100dvh-var(--nav-h))] py-4 md:py-8 gap-3">
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0">
-        <Avatar name={target.name} image={target.image} size={44} />
+        <Avatar name={target.name} size={44} />
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold tracking-tight truncate">{target.name}</h1>
           <StatusPill status={statusView(status, access)} />

@@ -1,11 +1,8 @@
 import { initials, toneFor } from "@/lib/present";
 
-export function Avatar({ name, image, size = 40 }: { name: string; image?: string | null; size?: number }) {
+/** Always initials on a name-derived tone; Google profile photos are never shown or stored. */
+export function Avatar({ name, size = 40 }: { name: string; size?: number }) {
   const t = toneFor(name);
-  if (image) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={image} alt="" width={size} height={size} referrerPolicy="no-referrer" className="rounded-sm object-cover shrink-0" style={{ width: size, height: size }} />;
-  }
   return (
     <div
       aria-hidden

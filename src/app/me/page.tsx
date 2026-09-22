@@ -31,7 +31,7 @@ export default async function MePage() {
   return (
     <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-6">
       <header className="flex items-center gap-3">
-        <Avatar name={user.name} image={user.image} size={52} />
+        <Avatar name={user.name} size={52} />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold tracking-tight truncate">{user.name}</h1>
           <p className="text-sm text-muted truncate">{user.email}</p>

@@ -22,7 +22,7 @@ export default function Privacy() {
       <section className="space-y-2">
         <h2 className={sectionTitle}>What dispo stores</h2>
         <ul className="list-disc pl-5 space-y-1">
-          <li>From Google sign-in: your name, @epfl.ch email address and profile picture. Nothing else from your Google account.</li>
+          <li>From Google sign-in: your name and @epfl.ch email address. Nothing else from your Google account, not even your profile picture.</li>
           <li>
             The calendar link you paste from IS-Academia, encrypted (AES-256-GCM). It is never shown to anyone,
             including you after you save it.
@@ -36,7 +36,7 @@ export default function Privacy() {
         <h2 className={sectionTitle}>Who sees it</h2>
         <p>
           Other signed-in users see your schedule according to your setting on <Link href="/me" className="link">your profile</Link>:
-          everyone, connections only, or no one. A public link, if you create one, shows free/busy only, without course
+          everyone at EPFL (the default), free/busy for everyone with details only for your connections, or connections only. A public link, if you create one, shows free/busy only, without course
           names or rooms. Your data is not sold, shared with third parties or used for ads.
         </p>
       </section>

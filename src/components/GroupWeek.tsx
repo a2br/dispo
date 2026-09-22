@@ -138,7 +138,7 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
           <div className="border-b border-l border-line px-1 py-1.5 text-center text-[11px] font-bold text-free self-stretch grid place-items-center">All</div>
           {members.map((m) => (
             <div key={m.id} className="border-b border-l border-line px-1 py-1.5 flex flex-col items-center gap-0.5 min-w-0">
-              <Avatar name={m.name} image={m.image} size={20} />
+              <Avatar name={m.name} size={20} />
               <span className="text-[11px] truncate max-w-full">{m.isSelf ? "You" : m.name.split(" ")[0]}</span>
             </div>
           ))}

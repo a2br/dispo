@@ -104,6 +104,8 @@ async function migrate(client: Client) {
   await client.execute(
     "CREATE UNIQUE INDEX IF NOT EXISTS saved_groups_invite_code_idx ON saved_groups(invite_code)",
   );
+  // Avatars are initials only: drop Google profile photo URLs saved by earlier versions.
+  await client.execute("UPDATE users SET image = NULL WHERE image IS NOT NULL");
   // Groups work like group chats: the creator is a member, and every group has an invite link.
   await client.execute(
     "INSERT OR IGNORE INTO saved_group_members (group_id, user_id) SELECT id, owner_id FROM saved_groups",

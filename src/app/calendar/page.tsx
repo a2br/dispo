@@ -63,14 +63,14 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
     }
     const cal = await getCalendar(user.id);
     const blocks = cal ? mergeBlocks(await eventsBetween(user.id, weekStart, weekEnd)).map(({ start, end }) => ({ start, end })) : [];
-    members.push({ id: user.id, name: user.name, image: user.image, isSelf: user.id === viewer.id, hasCalendar: Boolean(cal), blocks });
+    members.push({ id: user.id, name: user.name, isSelf: user.id === viewer.id, hasCalendar: Boolean(cal), blocks });
   }
 
   const [conns, groups, stars] = await Promise.all([connectionsOf(viewer.id), listGroups(viewer.id), starsOf(viewer.id)]);
   const friends = conns.accepted
-    .map((u) => ({ id: u.id, name: u.name, image: u.image }))
+    .map((u) => ({ id: u.id, name: u.name }))
     .sort((a, b) => Number(stars.users.has(b.id)) - Number(stars.users.has(a.id)) || a.name.localeCompare(b.name));
-  const selected = members.filter((m) => !m.isSelf).map((m) => ({ id: m.id, name: m.name, image: m.image }));
+  const selected = members.filter((m) => !m.isSelf).map((m) => ({ id: m.id, name: m.name }));
   const comparing = selected.length > 0;
   const baseParams: Record<string, string> = selected.length ? { with: selected.map((m) => m.id).join(",") } : {};
   const pickerGroups = groups
@@ -106,7 +106,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </header>
 
       <div className="shrink-0 space-y-2">
-        <PeoplePicker me={{ id: viewer.id, name: viewer.name, image: viewer.image }} friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
+        <PeoplePicker me={{ id: viewer.id, name: viewer.name }} friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
         {hiddenCount > 0 && (
           <p className="text-sm text-muted">
             {hiddenCount === 1 ? "1 person isn’t shown" : `${hiddenCount} people aren’t shown`}:{" "}

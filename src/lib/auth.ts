@@ -77,7 +77,7 @@ export async function requireUser(): Promise<User> {
 
 // ---------- users ----------
 
-export async function upsertUserFromProfile(p: { email: string; name?: string | null; image?: string | null }): Promise<User> {
+export async function upsertUserFromProfile(p: { email: string; name?: string | null }): Promise<User> {
   await dbReady;
   const email = p.email.toLowerCase();
   const name = (p.name ?? "").trim() || email.split("@")[0].replace(/\./g, " ");
@@ -85,7 +85,6 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
   if (existing) {
     const patch: Partial<User> = {};
     if (p.name && p.name !== existing.name) patch.name = p.name;
-    if (p.image !== undefined && p.image !== existing.image) patch.image = p.image;
     if (Object.keys(patch).length) {
       await db.update(schema.users).set(patch).where(eq(schema.users.id, existing.id));
       return { ...existing, ...patch };
@@ -96,7 +95,7 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
     id: crypto.randomUUID(),
     email,
     name,
-    image: p.image ?? null,
+    image: null,
     visibility: "everyone",
     discoverable: true,
     phone: null,
@@ -195,7 +194,6 @@ export async function finishGoogleLogin(code: string, state: string): Promise<{ 
   const user = await upsertUserFromProfile({
     email,
     name: typeof payload.name === "string" ? payload.name : null,
-    image: typeof payload.picture === "string" ? payload.picture : null,
   });
   return { user, next: safeNext(saved.next) };
 }

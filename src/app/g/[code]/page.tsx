@@ -42,7 +42,7 @@ export default async function GroupInvitePage({ params }: PageProps<"/g/[code]">
         <div className="flex -space-x-1">
           {inv.people.slice(0, 6).map((p) => (
             <span key={p.id} className="ring-2 ring-background rounded-sm">
-              <Avatar name={p.name} image={p.image} size={44} />
+              <Avatar name={p.name} size={44} />
             </span>
           ))}
         </div>

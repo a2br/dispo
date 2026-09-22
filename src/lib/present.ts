@@ -27,10 +27,10 @@ export function statusView(s: Status, access: "full" | "busy" | "none" = "busy")
   }
 }
 
-export type PersonView = { id: string; name: string; email: string; image: string | null; status: StatusView };
+export type PersonView = { id: string; name: string; email: string; status: StatusView };
 
 export function publicPerson(u: User, s: Status): PersonView {
-  return { id: u.id, name: u.name, email: u.email, image: u.image, status: statusView(s, "busy") };
+  return { id: u.id, name: u.name, email: u.email, status: statusView(s, "busy") };
 }
 
 /** Event as sent to the client, reduced to free/busy when access is limited. */

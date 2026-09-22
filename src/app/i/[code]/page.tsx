@@ -45,7 +45,7 @@ export default async function PersonalInvite({ params }: PageProps<"/i/[code]">)
       <Wordmark size="text-3xl" />
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Avatar name={inviter.name} image={inviter.image} size={56} />
+          <Avatar name={inviter.name} size={56} />
           <div>
             <p className="text-sm text-muted">Invitation from</p>
             <p className="text-xl font-bold">{inviter.name}</p>

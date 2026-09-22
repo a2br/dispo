@@ -20,7 +20,7 @@ export function PersonRow({
     <li className={`px-4 py-3 transition-opacity ${dim ? "opacity-55 hover:opacity-100" : ""}`}>
       <div className="flex items-center gap-3">
         <Link href={`/u/${person.id}`} className="group flex items-center gap-3 flex-1 min-w-0 active:opacity-70">
-          <Avatar name={person.name} image={person.image} />
+          <Avatar name={person.name} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-bold truncate group-hover:text-accent-ink transition-colors">{person.name}</span>

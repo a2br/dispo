@@ -12,7 +12,7 @@ export function GroupInviteModal({ invite, more }: { invite: PendingInvite; more
       <div className="w-full max-w-md bg-surface border border-line p-5 space-y-4 animate-in">
         <div className="flex gap-1">
           {invite.people.slice(0, 5).map((p) => (
-            <Avatar key={p.id} name={p.name} image={p.image} size={36} />
+            <Avatar key={p.id} name={p.name} size={36} />
           ))}
         </div>
         <div className="space-y-1">

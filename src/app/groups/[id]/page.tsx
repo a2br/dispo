@@ -117,7 +117,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
           <ul className={`${card} divide-y divide-line`}>
             {invited.map((p) => (
               <li key={p.id} className="flex items-center gap-3 px-4 py-2.5 opacity-70">
-                <Avatar name={p.name} image={p.image} size={32} />
+                <Avatar name={p.name} size={32} />
                 <span className="flex-1 min-w-0 truncate font-bold">{p.name}</span>
                 <form action={cancelInviteAction}>
                   <input type="hidden" name="groupId" value={g.id} />
@@ -135,7 +135,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         <form action={addMembersAction} className="px-4 pb-4 space-y-3">
           <input type="hidden" name="groupId" value={g.id} />
           <PeopleAdder
-            people={addable.map((u) => ({ id: u.id, name: u.name, image: u.image }))}
+            people={addable.map((u) => ({ id: u.id, name: u.name }))}
             directIds={conns.accepted.map((u) => u.id)}
             excludeIds={[...g.people.map((p) => p.id), ...invited.map((p) => p.id)]}
           />

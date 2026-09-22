@@ -29,7 +29,7 @@ export function GroupCards({ groups, next, now, pinned, locked = false }: { grou
             <Link href={href} className="group flex items-center gap-3 border border-line bg-surface px-4 py-3 hover:border-foreground">
               <span className="flex gap-1 shrink-0">
                 {g.members.slice(0, 3).map((m) => (
-                  <Avatar key={m.id} name={m.name} image={m.image} size={28} />
+                  <Avatar key={m.id} name={m.name} size={28} />
                 ))}
                 {g.members.length > 3 && <span className="size-7 rounded-sm bg-subtle grid place-items-center text-[10px] font-bold">+{g.members.length - 3}</span>}
               </span>

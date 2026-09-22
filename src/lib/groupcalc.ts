@@ -9,7 +9,6 @@ export type Interval = { start: number; end: number };
 export type MemberData = {
   id: string;
   name: string;
-  image: string | null;
   isSelf: boolean;
   hasCalendar: boolean;
   blocks: Interval[]; // merged busy blocks for the week (academic quarter already applied)

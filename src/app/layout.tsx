@@ -30,7 +30,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full">
-        {user && <AppNav me={{ id: user.id, name: user.name, email: user.email, image: user.image }} />}
+        {user && <AppNav me={{ id: user.id, name: user.name, email: user.email }} />}
         <div className={user ? "pb-[var(--nav-h)] md:pl-64" : ""}>
           <div className="mx-auto w-full max-w-6xl px-4 md:px-8">{children}</div>
         </div>

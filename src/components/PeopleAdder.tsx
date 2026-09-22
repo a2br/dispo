@@ -5,7 +5,7 @@ import type { PersonView } from "@/lib/present";
 import { input } from "@/lib/ui";
 import { Avatar } from "./Avatar";
 
-type Person = { id: string; name: string; image: string | null };
+type Person = { id: string; name: string };
 
 /**
  * Pick people for a group: your people are listed, anyone else on dispo can be searched.
@@ -69,7 +69,7 @@ export function PeopleAdder({ people, directIds, excludeIds = [] }: { people: Pe
             return (
               <li key={p.id}>
                 <button type="button" onClick={() => toggle(p)} aria-pressed={on} className={`w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-subtle ${on ? "bg-subtle" : ""}`}>
-                  <Avatar name={p.name} image={p.image} size={32} />
+                  <Avatar name={p.name} size={32} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate font-bold">{p.name}</span>
                     {on && !direct && <span className="block text-xs text-muted">Gets an invite to accept</span>}

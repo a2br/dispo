@@ -25,7 +25,7 @@ export async function nextCommonSlots(groups: { id: string; userIds: string[] }[
   const blocks = new Map(everyone.map((id) => [id, mergeBlocks(rows.filter((r) => r.userId === id)).map(({ start, end }) => ({ start, end }))]));
 
   for (const g of groups) {
-    const members: MemberData[] = g.userIds.map((id) => ({ id, name: "", image: null, isSelf: false, hasCalendar: hasCal.has(id), blocks: blocks.get(id) ?? [] }));
+    const members: MemberData[] = g.userIds.map((id) => ({ id, name: "", isSelf: false, hasCalendar: hasCal.has(id), blocks: blocks.get(id) ?? [] }));
     if (members.filter((m) => m.hasCalendar).length < 2) {
       out.set(g.id, null);
       continue;

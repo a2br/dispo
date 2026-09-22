@@ -33,7 +33,7 @@ export default async function CreateGroupPage() {
           <h2 className={sectionTitle}>
             Add people <span className="normal-case font-normal tracking-normal">· optional</span>
           </h2>
-          <PeopleAdder people={people.map((u) => ({ id: u.id, name: u.name, image: u.image }))} directIds={people.map((u) => u.id)} excludeIds={[user.id]} />
+          <PeopleAdder people={people.map((u) => ({ id: u.id, name: u.name }))} directIds={people.map((u) => u.id)} excludeIds={[user.id]} />
           <p className="text-xs text-muted">Your connections are added right away. Anyone else gets an invite they can accept or decline.</p>
         </section>
 
