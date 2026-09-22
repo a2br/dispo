@@ -34,7 +34,9 @@ export function ShareLinkButton({
     if (!link) return setState("error");
     if (typeof navigator.share === "function") {
       try {
-        await navigator.share({ title, text, url: link });
+        // Link goes inside `text` rather than `url`: share targets (iMessage, WhatsApp…) put a
+        // separate url *before* the text, leaving "…between classes:" dangling at the end.
+        await navigator.share({ title, text: `${text} ${link}` });
         return setState("idle");
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return setState("idle");
