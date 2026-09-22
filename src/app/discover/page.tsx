@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight } from "@/components/Icons";
 import { notFound } from "next/navigation";
+import { visibleStatuses } from "@/lib/access";
 import { requireUser } from "@/lib/auth";
 import { features } from "@/lib/features";
 import { classmatesFor } from "@/lib/classmates";
-import { connectionsOf, statusesFor } from "@/lib/calendar";
+import { connectionsOf } from "@/lib/calendar";
 import type { Relation } from "@/lib/access";
 import { publicPerson } from "@/lib/present";
 import { BackButton } from "@/components/BackButton";
@@ -49,7 +50,7 @@ export default async function DiscoverPage() {
   const outgoing = new Set(conns.outgoing.map((u) => u.id));
   const incoming = new Set(conns.incoming.map((u) => u.id));
   const strangers = classmates.filter((c) => !accepted.has(c.user.id));
-  const statuses = await statusesFor(strangers.map((c) => c.user.id));
+  const statuses = await visibleStatuses(user, strangers.map((c) => c.user));
   const relation = (id: string): Relation => (incoming.has(id) ? { kind: "incoming" } : outgoing.has(id) ? { kind: "outgoing" } : { kind: "none" });
   const perCourse = mine.map((c) => ({ course: c, count: strangers.filter((m) => m.shared.some((s) => s.key === c.key)).length }));
 

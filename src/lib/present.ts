@@ -9,6 +9,8 @@ export function statusView(s: Status, access: "full" | "busy" | "none" = "busy")
   switch (s.state) {
     case "unknown":
       return { state: "unknown", label: "No schedule yet" };
+    case "hidden":
+      return { state: "unknown", label: s.reason === "private" ? "Schedule is private" : "Add your schedule to see" };
     case "busy":
       return {
         state: "busy",

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { appUrl, requireUser } from "@/lib/auth";
-import { connectionsOf, statusesFor } from "@/lib/calendar";
+import { hasSchedule, visibleStatuses } from "@/lib/access";
+import { connectionsOf } from "@/lib/calendar";
 import { getGroup, pendingInvitees } from "@/lib/groups";
 import { nextCommonSlots } from "@/lib/nextSlot";
 import { publicPerson } from "@/lib/present";
@@ -35,13 +36,14 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
   const now = nowMs();
   const others = g.people.filter((p) => p.id !== user.id);
   const [statuses, next, stars, conns, invited] = await Promise.all([
-    statusesFor(g.people.map((p) => p.id)),
+    visibleStatuses(user, g.people),
     nextCommonSlots([{ id: g.id, userIds: g.people.map((p) => p.id) }], now),
     starsOf(user.id),
     connectionsOf(user.id),
     pendingInvitees(g.id),
   ]);
-  const slot = next.get(g.id);
+  const mine = await hasSchedule(user.id);
+  const slot = mine ? next.get(g.id) : undefined;
   const inviteUrl = `${appUrl()}/g/${g.inviteCode}`;
   const addable = conns.accepted.filter((u) => !g.people.some((p) => p.id === u.id)); // connections; others join via the link
   const calendarHref = others.length ? `/calendar?with=${others.map((p) => p.id).join(",")}` : null;
@@ -69,13 +71,27 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         <div className="flex-1 min-w-[12rem]">
           <div className={sectionTitle}>Everyone free</div>
           <div className={`text-lg font-bold ${slot?.now ? "text-free" : ""}`}>
-            {others.length === 0 ? "Invite people to compare" : when ? (slot?.now ? `Now, until ${fmtTime(slot.end)}` : when[0].toUpperCase() + when.slice(1)) : "No common slot in the next 2 weeks"}
+            {!mine
+              ? "Add your schedule to compare"
+              : others.length === 0
+                ? "Invite people to compare"
+                : when
+                  ? slot?.now
+                    ? `Now, until ${fmtTime(slot.end)}`
+                    : when[0].toUpperCase() + when.slice(1)
+                  : "No common slot in the next 2 weeks"}
           </div>
         </div>
-        {calendarHref && (
-          <Link href={calendarHref} className={button(sp.created === "1" ? "secondary" : "primary")}>
-            Open in calendar
+        {!mine ? (
+          <Link href={`/setup?next=${encodeURIComponent(`/groups/${g.id}`)}`} className={button("primary")}>
+            Add my schedule
           </Link>
+        ) : (
+          calendarHref && (
+            <Link href={calendarHref} className={button(sp.created === "1" ? "secondary" : "primary")}>
+              Open in calendar
+            </Link>
+          )
         )}
       </section>
 

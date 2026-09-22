@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { visibleStatuses } from "@/lib/access";
 import { requireUser } from "@/lib/auth";
 import { features } from "@/lib/features";
 import { peopleInCourse } from "@/lib/classmates";
-import { connectionsOf, statusesFor } from "@/lib/calendar";
+import { connectionsOf } from "@/lib/calendar";
 import type { Relation } from "@/lib/access";
 import { publicPerson } from "@/lib/present";
 import { BackButton } from "@/components/BackButton";
@@ -28,7 +29,7 @@ export default async function DiscoverCoursePage({ params }: PageProps<"/discove
   const incoming = new Set(conns.incoming.map((u) => u.id));
   const strangers = res.people.filter((p) => !accepted.has(p.id));
   const friendsHere = res.people.length - strangers.length;
-  const statuses = await statusesFor(strangers.map((p) => p.id));
+  const statuses = await visibleStatuses(user, strangers);
   const relation = (id: string): Relation => (incoming.has(id) ? { kind: "incoming" } : outgoing.has(id) ? { kind: "outgoing" } : { kind: "none" });
 
   return (

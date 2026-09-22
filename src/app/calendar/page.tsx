@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { starsOf } from "@/lib/stars";
-import { accessFor, relationTo } from "@/lib/access";
+import { accessFor, hasSchedule, relationTo } from "@/lib/access";
 import { STALE_MS, connectionsOf, eventsBetween, getCalendar, getUserById, refreshCalendar, statusFrom } from "@/lib/calendar";
 import { mergeBlocks } from "@/lib/blocks";
 import { getGroup, listGroups, shareAGroup } from "@/lib/groups";
@@ -48,10 +48,19 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   // You are always in the view; everyone else must be visible to you at least as free/busy.
   const ids = [viewer.id, ...requested.filter((id) => id !== viewer.id)].filter((id, i, a) => a.indexOf(id) === i).slice(0, MAX_MEMBERS);
   const members: MemberData[] = [];
+  const mine = await hasSchedule(viewer.id);
+  let hiddenCount = 0; // people left out because you haven't added your schedule (or they're private)
   for (const id of ids) {
     const user = id === viewer.id ? viewer : await getUserById(id);
     if (!user) continue;
-    if (id !== viewer.id && accessFor(user, await relationTo(viewer.id, user)) === "none" && !(await shareAGroup(viewer.id, user.id))) continue;
+    if (id !== viewer.id) {
+      const rel = await relationTo(viewer.id, user);
+      const ok = accessFor(user, rel, mine) !== "none" || (mine && (await shareAGroup(viewer.id, user.id)));
+      if (!ok) {
+        hiddenCount++;
+        continue;
+      }
+    }
     const cal = await getCalendar(user.id);
     const blocks = cal ? mergeBlocks(await eventsBetween(user.id, weekStart, weekEnd)).map(({ start, end }) => ({ start, end })) : [];
     members.push({ id: user.id, name: user.name, image: user.image, isSelf: user.id === viewer.id, hasCalendar: Boolean(cal), blocks });
@@ -98,6 +107,16 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
 
       <div className="shrink-0 space-y-2">
         <PeoplePicker me={{ id: viewer.id, name: viewer.name, image: viewer.image }} friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
+        {hiddenCount > 0 && (
+          <p className="text-sm text-muted">
+            {hiddenCount === 1 ? "1 person isn’t shown" : `${hiddenCount} people aren’t shown`}:{" "}
+            {mine ? "their schedule is private." : (
+              <>
+                add <Link href="/setup?next=%2Fcalendar" className="link">your schedule</Link> to compare with people you’re not connected with.
+              </>
+            )}
+          </p>
+        )}
         {/* Looking stays silent: the calendar never offers to create a group, it only links to one you're in. */}
         {match && (
           <div className="flex flex-wrap items-center gap-2 text-sm">

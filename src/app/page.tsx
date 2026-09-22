@@ -6,6 +6,7 @@ import { appUrl, getUser } from "@/lib/auth";
 import { Fineprint, SignIn } from "@/components/SignIn";
 import { connectionsOf, getCalendar, statusesFor, todayBlocksFor, usersWithCalendar, type Status } from "@/lib/calendar";
 import { invitesFor, listGroups } from "@/lib/groups";
+import { visibleStatuses } from "@/lib/access";
 import { GroupInviteModal } from "@/components/GroupInviteModal";
 import { inviteCodeFor } from "@/lib/invites";
 import { nextCommonSlots } from "@/lib/nextSlot";
@@ -46,7 +47,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     statusesFor(ids),
     todayBlocksFor(conns.accepted.map((u) => u.id), now),
     usersWithCalendar(conns.accepted.map((u) => u.id)),
-    nextCommonSlots(groups.map((g) => ({ id: g.id, userIds: [user.id, ...g.members.map((m) => m.id)] })), now),
+    cal ? nextCommonSlots(groups.map((g) => ({ id: g.id, userIds: [user.id, ...g.members.map((m) => m.id)] })), now) : Promise.resolve(new Map()),
   ]);
   const view = (u: (typeof conns.accepted)[number]) => publicPerson(u, statuses.get(u.id) ?? { state: "unknown" });
   const dayStart = dayStartOf(now);
@@ -73,6 +74,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const connectedIds = new Set([...conns.accepted, ...conns.outgoing, ...conns.incoming].map((u) => u.id));
   const suggested = classmates.filter((c) => !connectedIds.has(c.user.id) && c.shared.length >= minShared);
   const shownClassmates = suggested.slice(0, CLASSMATES_CAP);
+  const classmateStatuses = await visibleStatuses(user, shownClassmates.map((c) => c.user));
 
   const strip = (id: string) => (
     <div className="hidden md:block w-56 lg:w-72 shrink-0">
@@ -181,7 +183,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
               </Link>
             </div>
             {groups.length > 0 ? (
-              <GroupCards groups={sortedGroups} next={groupNext} now={now} pinned={stars.groups} />
+              <GroupCards groups={sortedGroups} next={groupNext} now={now} pinned={stars.groups} locked={!cal} />
             ) : (
               <p className={`${card} px-4 py-4 text-sm text-muted`}>A group is like a group chat for finding a time: everyone in it sees when you’re all free, and it comes with a link for your chat.</p>
             )}
@@ -213,7 +215,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                   {shownClassmates.map((m) => (
                     <PersonRow
                       key={m.user.id}
-                      person={view(m.user)}
+                      person={publicPerson(m.user, classmateStatuses.get(m.user.id) ?? { state: "unknown" })}
                       trailing={
                         <span className="text-sm font-bold tabular-nums whitespace-nowrap" title={`${m.shared.length} of your ${mine.length} courses`}>
                           {m.shared.length}/{mine.length}

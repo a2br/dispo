@@ -127,7 +127,9 @@ export async function eventsBetween(userId: string, from: number, to: number): P
 export type Status =
   | { state: "busy"; until: number; event: Event }
   | { state: "free"; until: number | null; next: Event | null } // until = next start today, null = free rest of day
-  | { state: "unknown" };
+  | { state: "unknown" }
+  // Not shown to this viewer: the person keeps their schedule private, or the viewer hasn't added theirs yet.
+  | { state: "hidden"; reason: "private" | "needs-schedule" };
 
 export function statusFrom(events: Event[], now = Date.now()): Status {
   const dayEnd = dayStartOf(now) + 86_400_000;

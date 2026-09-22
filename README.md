@@ -9,6 +9,9 @@ IS-Academia timetables, which live behind Gaspar and have no shared calendar ser
   always work. Timetables are shared with everyone at EPFL by default, like a company calendar;
   "connections see details" and "connections only" are opt-in (a private schedule shows as
   "Schedule is private" with a Connect button).
+- Give to get: until you've added your own schedule, you only see your connections' schedules.
+  Everyone else shows "Add your schedule to see" (search, profiles, Discover, groups, calendar).
+  Public links are the owner's choice and stay viewable by anyone.
 - Search also queries the public EPFL directory (the JSON endpoint behind search.epfl.ch,
   `src/lib/directory.ts`) and lists matches who aren't on dispo yet with an Invite button.
   Invite opens the share sheet or an email draft; the app never sends anything itself.

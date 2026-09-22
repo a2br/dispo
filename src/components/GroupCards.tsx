@@ -18,7 +18,7 @@ function nextLabel(n: Next, now: number): { text: string; good: boolean } {
 }
 
 /** Your groups, each with the next time everyone is free. Tapping one opens its page. */
-export function GroupCards({ groups, next, now, pinned }: { groups: GroupWithMembers[]; next: Map<string, Next>; now: number; pinned?: Set<string> }) {
+export function GroupCards({ groups, next, now, pinned, locked = false }: { groups: GroupWithMembers[]; next: Map<string, Next>; now: number; pinned?: Set<string>; locked?: boolean }) {
   return (
     <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
       {groups.map((g) => {
@@ -43,7 +43,7 @@ export function GroupCards({ groups, next, now, pinned }: { groups: GroupWithMem
                   )}
                 </span>
                 <span className={`block text-sm truncate ${label.good ? "text-free font-bold" : "text-muted"}`}>
-                  {g.members.length === 0 ? "Nobody has joined yet" : label.text}
+                  {g.members.length === 0 ? "Nobody has joined yet" : locked ? "Add your schedule to compare" : label.text}
                 </span>
               </span>
               <ChevronRight className="size-4 text-muted shrink-0" />
