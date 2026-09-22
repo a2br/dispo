@@ -37,7 +37,24 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
 
   const rel = await relationTo(viewer.id, target);
   const access = accessFor(target, rel);
-  if (access === "none") notFound();
+  if (access === "none") {
+    // Findable by name, schedule private: offer the request, show nothing else.
+    return (
+      <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-5">
+        <header className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <Avatar name={target.name} image={target.image} size={44} />
+          <div className="flex-1 min-w-[9rem]">
+            <h1 className="text-xl font-bold tracking-tight truncate">{target.name}</h1>
+            <p className="text-sm text-muted">Schedule is private</p>
+          </div>
+          <ConnectButton userId={target.id} rel={rel} />
+        </header>
+        <p className="border border-line px-4 py-6 text-center text-sm text-muted">
+          Only people {target.name.split(" ")[0]} has accepted can see their schedule. Send a request to connect.
+        </p>
+      </main>
+    );
+  }
 
   const cal = await getCalendar(target.id);
   const now = nowMs();

@@ -19,7 +19,7 @@ export const metadata: Metadata = { title: "Me" };
 const OPTIONS: { value: Visibility; title: string; desc: string }[] = [
   { value: "everyone", title: "Everyone at EPFL (default)", desc: "Anyone signed in sees your timetable, like a shared work calendar." },
   { value: "connections", title: "Connections see details", desc: "Everyone sees free/busy; only people you accept see courses and rooms." },
-  { value: "private", title: "Connections only", desc: "Hidden from search. Only people you’ve accepted can see anything." },
+  { value: "private", title: "Connections only", desc: "Only people you’ve accepted see your schedule. You can still be found by name, so people can send you a request." },
 ];
 
 export default async function MePage() {

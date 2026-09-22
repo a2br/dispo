@@ -5,8 +5,10 @@ IS-Academia timetables, which live behind Gaspar and have no shared calendar ser
 
 - Sign in with the EPFL Google account (Google for Education, restricted to `hd=epfl.ch`).
 - Paste the calendar link from the EPFL Campus app once. The server keeps it in sync.
-- Search anyone by name. Timetables are shared with everyone at EPFL by default, like a
-  company calendar; "connections see details" and "connections only" are opt-in.
+- Search anyone by name: everyone is findable, whatever their settings, so connection requests
+  always work. Timetables are shared with everyone at EPFL by default, like a company calendar;
+  "connections see details" and "connections only" are opt-in (a private schedule shows as
+  "Schedule is private" with a Connect button).
 - Search also queries the public EPFL directory (the JSON endpoint behind search.epfl.ch,
   `src/lib/directory.ts`) and lists matches who aren't on dispo yet with an Invite button.
   Invite opens the share sheet or an email draft; the app never sends anything itself.

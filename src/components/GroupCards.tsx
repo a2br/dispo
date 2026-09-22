@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight } from "@/components/Icons";
 import type { GroupWithMembers } from "@/lib/groups";
 import type { Interval } from "@/lib/groupcalc";
 import { fmtDayShort, fmtTime, dayStartOf } from "@/lib/time";
@@ -45,7 +46,7 @@ export function GroupCards({ groups, next, now, pinned }: { groups: GroupWithMem
                   {g.members.length === 0 ? "Nobody has joined yet" : label.text}
                 </span>
               </span>
-              <span aria-hidden className="text-muted">›</span>
+              <ChevronRight className="size-4 text-muted shrink-0" />
             </Link>
           </li>
         );

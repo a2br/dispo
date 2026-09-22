@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ChevronRight } from "@/components/Icons";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { features } from "@/lib/features";
@@ -58,7 +59,7 @@ export default async function DiscoverPage() {
         {header}
         <div className="border border-line px-4 py-10 text-center space-y-3">
           <p className="text-muted">Add your schedule first to find people who share your courses.</p>
-          <Link href="/setup" className={button("primary", "md")}>Add my schedule</Link>
+          <Link href="/setup" className={button("primary")}>Add my schedule</Link>
         </div>
       </main>
     );
@@ -103,7 +104,7 @@ export default async function DiscoverPage() {
                 <CourseChip course={course} link={false} />
                 <span className="flex-1 min-w-0 truncate group-hover:text-accent-ink">{course.name}</span>
                 <span className="text-sm text-muted tabular-nums whitespace-nowrap">{count === 0 ? "nobody new" : count === 1 ? "1 person" : `${count} people`}</span>
-                <span aria-hidden className="text-muted">›</span>
+                <ChevronRight className="size-4 text-muted shrink-0" />
               </Link>
             </li>
           ))}

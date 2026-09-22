@@ -166,6 +166,7 @@ export async function statusesFor(userIds: string[], now = Date.now()): Promise<
 
 // ---------- people ----------
 
+/** Name/email search over everyone on dispo, regardless of their visibility settings. */
 export async function searchUsers(viewer: User, q: string, limit = 20): Promise<User[]> {
   await dbReady;
   const needle = `%${q.trim().toLowerCase().replace(/[%_]/g, "")}%`;
@@ -180,22 +181,9 @@ export async function searchUsers(viewer: User, q: string, limit = 20): Promise<
       ),
     )
     .limit(limit * 2);
-  // private users are only findable by accepted connections
-  const ids = rows.filter((r) => r.visibility === "private").map((r) => r.id);
-  let allowed = new Set<string>();
-  if (ids.length) {
-    const cs = await db
-      .select()
-      .from(schema.connections)
-      .where(
-        and(
-          eq(schema.connections.status, "accepted"),
-          sql`((${schema.connections.requesterId} = ${viewer.id} AND ${schema.connections.addresseeId} IN ${ids}) OR (${schema.connections.addresseeId} = ${viewer.id} AND ${schema.connections.requesterId} IN ${ids}))`,
-        ),
-      );
-    allowed = new Set(cs.map((c) => (c.requesterId === viewer.id ? c.addresseeId : c.requesterId)));
-  }
-  return rows.filter((r) => r.visibility !== "private" || allowed.has(r.id)).slice(0, limit);
+  // Everyone can be found by name (so people can always send a connection request);
+  // what a result reveals about their schedule is decided per viewer, not here.
+  return rows.slice(0, limit);
 }
 
 export async function connectionsOf(userId: string): Promise<{ accepted: User[]; incoming: User[]; outgoing: User[] }> {

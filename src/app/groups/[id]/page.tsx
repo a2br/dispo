@@ -61,7 +61,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         <div className={`${card} p-4 space-y-2 animate-in`}>
           <p className="font-bold">Group created. Now invite the others.</p>
           <p className="text-sm text-muted">Drop the link in your group chat. Whoever opens it and signs in joins the group and gets connected with everyone in it.</p>
-          <ShareLinkButton url={inviteUrl} title={`Join “${g.name}” on dispo`} text="See when everyone’s free:" label="Share invite link" size="md" />
+          <ShareLinkButton url={inviteUrl} title={`Join “${g.name}” on dispo`} text="See when everyone’s free:" label="Share invite link" />
         </div>
       )}
 
@@ -73,7 +73,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
           </div>
         </div>
         {calendarHref && (
-          <Link href={calendarHref} className={button(sp.created === "1" ? "secondary" : "primary", "md")}>
+          <Link href={calendarHref} className={button(sp.created === "1" ? "secondary" : "primary")}>
             Open in calendar
           </Link>
         )}
@@ -124,7 +124,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
             excludeIds={[...g.people.map((p) => p.id), ...invited.map((p) => p.id)]}
           />
           <p className="text-xs text-muted">Your connections join right away; anyone else gets an invite to accept.</p>
-          <button type="submit" className={button("secondary", "md")}>
+          <button type="submit" className={button("secondary")}>
             Add to group
           </button>
         </form>
@@ -135,8 +135,8 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         <div className={`${card} p-4 space-y-4`}>
           <form action={renameGroupAction} className="flex gap-2">
             <input type="hidden" name="groupId" value={g.id} />
-            <input name="name" required maxLength={60} defaultValue={g.name} aria-label="Group name" autoComplete="off" data-1p-ignore data-lpignore="true" className={input("md", "flex-1 w-auto min-w-0")} />
-            <button type="submit" className={button("secondary", "md")}>
+            <input name="name" required maxLength={60} defaultValue={g.name} aria-label="Group name" autoComplete="off" data-1p-ignore data-lpignore="true" className={input("sm", "flex-1 w-auto min-w-0")} />
+            <button type="submit" className={button("secondary")}>
               Rename
             </button>
           </form>

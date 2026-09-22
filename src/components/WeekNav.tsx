@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { button, iconButton } from "@/lib/ui";
+import { ChevronLeft, ChevronRight } from "./Icons";
 import { formatInTimeZone } from "date-fns-tz";
 import { TZ, addDays, fmtWeekLabel } from "@/lib/time";
 
@@ -19,13 +20,13 @@ export function WeekNav({ weekStart, thisWeekStart, hrefFor }: { weekStart: numb
         </Link>
       )}
       <Link href={hrefFor(addDays(weekStart, -7))} aria-label="Previous week" className={iconButton()}>
-        ‹
+        <ChevronLeft />
       </Link>
       <span className="h-8 w-[6.5rem] sm:w-32 inline-flex items-center justify-center font-bold whitespace-nowrap text-[13px] sm:text-sm" title={fmtWeekLabel(weekStart)}>
         {label}
       </span>
       <Link href={hrefFor(addDays(weekStart, 7))} aria-label="Next week" className={iconButton()}>
-        ›
+        <ChevronRight />
       </Link>
     </div>
   );

@@ -1,9 +1,10 @@
 /**
  * Shared style recipes. Anything clickable uses `button()` / `iconButton()`, so controls that sit
  * next to each other share one height and one shape. Sizes:
- *   sm = 32px  inline actions, rows of controls, chips (the default)
- *   md = 40px  form submits, full-width actions
- *   lg = 48px  the one main call to action on a screen
+ *   sm = 32px  every button that isn't full width, chips, and inputs that sit next to them (default)
+ *   md = 40px  full-width buttons (and a text field + button row that spans the width)
+ *   lg = 48px  the one full-width main call to action on a screen
+ * Rule: buttons in the same card or section share one size.
  */
 
 export type ButtonVariant =

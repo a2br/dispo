@@ -122,7 +122,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       ) : (
         <div className="border border-line px-4 py-10 text-center space-y-3">
           <p className="text-muted">Add your schedule to see your week here, then add friends to find a time together.</p>
-          <Link href="/setup" className={button("primary", "md")}>Add my schedule</Link>
+          <Link href="/setup" className={button("primary")}>Add my schedule</Link>
         </div>
       )}
     </main>
