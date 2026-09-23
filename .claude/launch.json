@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "dispo",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev", "--port", "3017"],
-      "port": 3017
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "NEXT_DIST_DIR=.next-preview exec pnpm dev"],
+      "port": 3017,
+      "autoPort": true
     }
   ]
 }
