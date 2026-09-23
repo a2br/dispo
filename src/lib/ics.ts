@@ -88,7 +88,11 @@ export function parseIcs(text: string): ParsedEvent[] {
     const kindRaw = (m ? m[2] : "").trim().toLowerCase();
     const kind: EventKind = KIND_MAP[kindRaw] ?? "other";
     const desc = str(ev.description);
-    const code = desc.match(/Course Code\s*\n\s*([A-Z]{2,6}-\d{2,4}[A-Z]?)/)?.[1] ?? null;
+    // The "Course Code" label is localized; the course link's redirectUrl isn't.
+    const code =
+      desc.match(/Course Code\s*\n\s*([A-Z]{2,6}-\d{2,4}[A-Z]?)/)?.[1] ??
+      desc.match(/redirectUrl=([A-Z]{2,6}-\d{2,4}[A-Z]?)\b/)?.[1] ??
+      null;
     const teacher = desc.match(/Teacher\s*\n\s*•\s*([^—\n]+?)\s*(?:—|$)/)?.[1]?.trim() ?? null;
     const location = str(ev.location).trim();
     const rooms = location

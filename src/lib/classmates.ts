@@ -4,6 +4,12 @@ import type { User } from "@/db/schema";
 
 export type Course = { key: string; code: string | null; name: string; sessions: number };
 
+/** Same course if the codes match, or the names do (one feed may lack codes, e.g. a different language). */
+function sameCourse(a: Course, b: Course): boolean {
+  if (a.code && b.code && a.code === b.code) return true;
+  return a.name.trim().toLowerCase() === b.name.trim().toLowerCase();
+}
+
 /** Distinct courses per user, keyed by course code (falls back to the name). */
 export async function coursesFor(userIds: string[]): Promise<Map<string, Course[]>> {
   const out = new Map<string, Course[]>();
@@ -72,7 +78,7 @@ export async function classmatesFor(viewer: User): Promise<{ mine: Course[]; cla
   const classmates: Classmate[] = [];
   for (const u of users) {
     const theirs = courses.get(u.id) ?? [];
-    const shared = mine.filter((c) => theirs.some((t) => t.key === c.key));
+    const shared = mine.filter((c) => theirs.some((t) => sameCourse(t, c)));
     if (shared.length > 0) classmates.push({ user: u, shared, theirTotal: theirs.length });
   }
   classmates.sort((a, b) => b.shared.length - a.shared.length || a.user.name.localeCompare(b.user.name));
@@ -85,7 +91,7 @@ export async function sharedCourses(viewerId: string, otherId: string): Promise<
   const mine = map.get(viewerId);
   const theirs = map.get(otherId);
   if (!mine || !theirs) return null;
-  return { mine, shared: mine.filter((c) => theirs.some((t) => t.key === c.key)) };
+  return { mine, shared: mine.filter((c) => theirs.some((t) => sameCourse(t, c))) };
 }
 
 /** People visible to the viewer who take a given course, provided the viewer takes it too. */
@@ -96,7 +102,7 @@ export async function peopleInCourse(viewer: User, key: string): Promise<{ cours
   if (!course) return null;
   const users = await discoverableUsers(viewer);
   const courses = await coursesFor(users.map((u) => u.id));
-  const people = users.filter((u) => (courses.get(u.id) ?? []).some((c) => c.key === key)).sort((a, b) => a.name.localeCompare(b.name));
+  const people = users.filter((u) => (courses.get(u.id) ?? []).some((c) => sameCourse(c, course))).sort((a, b) => a.name.localeCompare(b.name));
   return { course, people };
 }
 
