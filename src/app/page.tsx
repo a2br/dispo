@@ -105,7 +105,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             <h2 className="font-bold">Invite friends</h2>
             <p className="text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
           </div>
-          <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="primary" />
+          <ShareLinkButton url={inviteUrl} text="See when we’re both free between classes:" label="Share my link" variant="primary" />
           <form action={dismissInviteCard} className="absolute top-2 right-2">
             <button className={iconButton("quiet")} aria-label="Hide invite card" title="Hide">
               <CloseIcon />
@@ -138,7 +138,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                 </Step>
                 <Step n={2} done={conns.accepted.length > 0} title="Bring your people" detail="Find people above, or send your link. Whoever signs up through it is connected with you automatically.">
                   {conns.accepted.length === 0 && (
-                    <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant={cal ? "primary" : "secondary"} />
+                    <ShareLinkButton url={inviteUrl} text="See when we’re both free between classes:" label="Share my link" variant={cal ? "primary" : "secondary"} />
                   )}
                 </Step>
               </ol>
@@ -210,7 +210,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           {!onboarding && user.hideInviteCard && (
             <section className={`${card} flex items-center gap-3 px-4 py-3`}>
               <p className="flex-1 min-w-0 text-sm text-muted">Your invite link connects whoever signs up with you.</p>
-              <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Invite" variant="secondary" />
+              <ShareLinkButton url={inviteUrl} text="See when we’re both free between classes:" label="Invite" variant="secondary" />
             </section>
           )}
 

@@ -7,7 +7,7 @@ import { STALE_MS, eventsBetween, getCalendar, refreshCalendar, statusFrom } fro
 import { mergeBlocks } from "@/lib/blocks";
 import { inviteCodeFor, userByShareCode } from "@/lib/invites";
 import { busyViews, statusView } from "@/lib/present";
-import { addDays, dayStartOf, isoDate, nowMs, todayIndexInWeek, weekStartFromParam, weekStartOf } from "@/lib/time";
+import { addDays, dayStartOf, fmtWeekLabel, isoDate, nowMs, todayIndexInWeek, weekStartFromParam, weekStartOf } from "@/lib/time";
 import { button, card } from "@/lib/ui";
 import { Avatar } from "@/components/Avatar";
 import { SignIn } from "@/components/SignIn";
@@ -17,13 +17,17 @@ import { WeekView } from "@/components/WeekView";
 
 const firstName = (n: string) => n.split(" ")[0];
 
-export async function generateMetadata({ params }: PageProps<"/s/[code]">): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: PageProps<"/s/[code]">): Promise<Metadata> {
   const { code } = await params;
+  const sp = await searchParams;
   const owner = await userByShareCode(code);
   if (!owner) return { title: "Schedule", robots: { index: false, follow: false } };
+  // The preview draws the week this link opens on, so `?w=` is carried into the image URL too.
+  const weekStart = weekStartFromParam(typeof sp.w === "string" ? sp.w : undefined);
+  const images = [{ url: `/s/${code}/og?w=${isoDate(weekStart)}`, width: 1200, height: 630, alt: `${firstName(owner.name)}’s week on dispo` }];
   const title = `${firstName(owner.name)}’s week`;
-  const description = `When ${firstName(owner.name)} is free and busy this week. See when you’re both free on dispo.`;
-  return { title, description, robots: { index: false, follow: false }, openGraph: { title, description }, twitter: { card: "summary_large_image", title, description } };
+  const description = `When ${firstName(owner.name)} is free and busy, ${fmtWeekLabel(weekStart)}. See when you’re both free on dispo.`;
+  return { title, description, robots: { index: false, follow: false }, openGraph: { title, description, images }, twitter: { card: "summary_large_image", title, description, images } };
 }
 
 /**

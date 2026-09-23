@@ -6,11 +6,16 @@ import { button, type ButtonSize, type ButtonVariant } from "@/lib/ui";
 /**
  * Share sheet on phones, copy-to-clipboard elsewhere. `getUrl` lets the link be created lazily
  * (e.g. a group's share link is only minted the first time someone shares it).
+ *
+ * The share sheet gets a one-line message with the link at the end: it's going into a chat. The
+ * clipboard gets the bare link: whoever copies it decides where it goes and what to say.
  */
+/** Messages are sent as a single line: no breaks between the words and the link. */
+export const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+
 export function ShareLinkButton({
   url,
   getUrl,
-  title,
   text,
   label = "Share link",
   variant = "primary",
@@ -19,7 +24,6 @@ export function ShareLinkButton({
 }: {
   url?: string;
   getUrl?: () => Promise<string | null>;
-  title: string;
   text: string;
   label?: string;
   variant?: ButtonVariant;
@@ -34,9 +38,9 @@ export function ShareLinkButton({
     if (!link) return setState("error");
     if (typeof navigator.share === "function") {
       try {
-        // Link goes inside `text` rather than `url`: share targets (iMessage, WhatsApp…) put a
-        // separate url *before* the text, leaving "…between classes:" dangling at the end.
-        await navigator.share({ title, text: `${text} ${link}` });
+        // Only `text`, with the link inside it: share targets (iMessage, WhatsApp…) put a separate
+        // `url` before the text, and some Android ones add `title` on a line of its own.
+        await navigator.share({ text: oneLine(`${text} ${link}`) });
         return setState("idle");
       } catch (e) {
         if (e instanceof DOMException && e.name === "AbortError") return setState("idle");

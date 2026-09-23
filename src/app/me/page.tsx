@@ -5,7 +5,7 @@ import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { eventsBetween, getCalendar, statusFrom } from "@/lib/calendar";
 import { statusView } from "@/lib/present";
 import { StatusPill } from "@/components/StatusPill";
-import { dayStartOf, relativeAge, nowMs } from "@/lib/time";
+import { addDays, dayStartOf, isoDate, localParts, relativeAge, nowMs, weekStartOf } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
 import { DiscoverToggle } from "@/components/DiscoverToggle";
 import { PhoneForm } from "@/components/PhoneForm";
@@ -28,6 +28,10 @@ export default async function MePage() {
   const cal = await getCalendar(user.id);
   const today = cal ? await eventsBetween(user.id, dayStartOf(nowMs()), dayStartOf(nowMs()) + 86_400_000) : [];
   const now = nowMs();
+  // The public link names its week, so each week's link gets a fresh preview in chat apps
+  // (they cache previews per URL). From Saturday on, "my week" means the coming one.
+  const weekend = localParts(now).day >= 5;
+  const shareWeek = weekend ? addDays(weekStartOf(now), 7) : weekStartOf(now);
   const inviteUrl = `${appUrl()}/i/${await inviteCodeFor(user)}`;
 
   return (
@@ -74,7 +78,7 @@ export default async function MePage() {
         <h2 className={sectionTitle}>Invite link</h2>
         <div className={`${card} flex flex-wrap items-center gap-3 p-4`}>
           <p className="flex-1 min-w-[12rem] text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
-          <ShareLinkButton url={inviteUrl} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" variant="primary" />
+          <ShareLinkButton url={inviteUrl} text="See when we’re both free between classes:" label="Share my link" variant="primary" />
         </div>
       </section>
 
@@ -86,7 +90,7 @@ export default async function MePage() {
           </p>
           {user.shareCode ? (
             <div className="flex flex-wrap items-center gap-2">
-              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}`} title={`${user.name.split(" ")[0]}’s week`} text="When I’m free this week:" label="Share link" variant="primary" />
+              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}?w=${isoDate(shareWeek)}`} text={weekend ? "When I’m free next week:" : "When I’m free this week:"} label="Share link" variant="primary" />
               <a href={`/s/${user.shareCode}`} target="_blank" rel="noopener" className={button("secondary")}>
                 Preview ↗
               </a>

@@ -35,7 +35,7 @@ export default async function PersonalInvite({ params }: PageProps<"/i/[code]">)
         <h1 className="text-2xl font-bold tracking-tight">This is your invite link</h1>
         <p className="text-muted">Anyone at EPFL who opens it and signs in is connected with you right away, so you’ll see each other’s free time.</p>
         <div className="flex flex-wrap gap-2">
-          <ShareLinkButton url={`${appUrl()}/i/${code}`} title="Join me on dispo" text="See when we’re both free between classes:" label="Share my link" />
+          <ShareLinkButton url={`${appUrl()}/i/${code}`} text="See when we’re both free between classes:" label="Share my link" />
           <Link href="/" className={button("secondary", "sm")}>Back to dispo</Link>
         </div>
       </main>

@@ -63,7 +63,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         <div className={`${card} p-4 space-y-2 animate-in`}>
           <p className="font-bold">Group created. Now invite the others.</p>
           <p className="text-sm text-muted">Drop the link in your group chat. Whoever opens it and signs in joins the group and gets connected with everyone in it.</p>
-          <ShareLinkButton url={inviteUrl} title={`Join “${g.name}” on dispo`} text="See when everyone’s free:" label="Share invite link" />
+          <ShareLinkButton url={inviteUrl} text="See when everyone’s free:" label="Share invite link" />
         </div>
       )}
 
@@ -98,7 +98,7 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
       <section className="space-y-2">
         <div className="flex items-baseline justify-between gap-3">
           <h2 className={sectionTitle}>{g.people.length} in this group</h2>
-          <ShareLinkButton url={inviteUrl} title={`Join “${g.name}” on dispo`} text="See when everyone’s free:" label="Invite link" variant="secondary" />
+          <ShareLinkButton url={inviteUrl} text="See when everyone’s free:" label="Invite link" variant="secondary" />
         </div>
         <ul className={`${card} divide-y divide-line`}>
           {g.people.map((p) => (
