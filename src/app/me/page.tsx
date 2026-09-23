@@ -12,19 +12,22 @@ import { PhoneForm } from "@/components/PhoneForm";
 import { button, card, sectionTitle } from "@/lib/ui";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
 import { inviteCodeFor } from "@/lib/invites";
+import { icsErrorText } from "@/lib/ics";
+import { LanguagePicker } from "@/components/LanguagePicker";
+import { getLocale, getT } from "@/i18n/server";
 import { refreshMyCalendar, removeMyCalendar, setPublicLink, setVisibility, signOut } from "@/app/actions";
 import type { Visibility } from "@/db/schema";
+import { LOCALE_TAGS } from "@/i18n/config";
 
-export const metadata: Metadata = { title: "Me" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).nav.me };
+}
 
-const OPTIONS: { value: Visibility; title: string; desc: string }[] = [
-  { value: "everyone", title: "Everyone at EPFL (default)", desc: "Anyone signed in sees your timetable, like a shared work calendar." },
-  { value: "connections", title: "Connections see details", desc: "Everyone sees free/busy; only people you accept see courses and rooms." },
-  { value: "private", title: "Connections only", desc: "Only people you’ve accepted see your schedule. You can still be found by name, so people can send you a request." },
-];
+const VISIBILITIES: Visibility[] = ["everyone", "connections", "private"];
 
 export default async function MePage() {
   const user = await requireUser();
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   const cal = await getCalendar(user.id);
   const today = cal ? await eventsBetween(user.id, dayStartOf(nowMs()), dayStartOf(nowMs()) + 86_400_000) : [];
   const now = nowMs();
@@ -47,75 +50,81 @@ export default async function MePage() {
       {cal && (
         <Link href="/calendar" className={`${card} group flex items-center gap-3 px-4 py-3 hover:border-foreground`}>
           <span className="flex-1 min-w-0">
-            <span className={`${sectionTitle} block mb-0.5`}>Right now</span>
-            <StatusPill status={statusView(statusFrom(today, now), "full")} />
+            <span className={`${sectionTitle} block mb-0.5`}>{t.me.rightNow}</span>
+            <StatusPill status={statusView(statusFrom(today, now), t, "full")} />
           </span>
-          <span className="text-sm link whitespace-nowrap">My week</span>
+          <span className="text-sm link whitespace-nowrap">{t.me.myWeek}</span>
         </Link>
       )}
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Who can see my schedule</h2>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t.me.visibility.title}</h2>
         <form action={setVisibility} className="rounded-2xl bg-surface border border-line divide-y divide-line">
-          {OPTIONS.map((o) => (
-            <label key={o.value} className="flex items-start gap-3 px-4 py-3 cursor-pointer">
-              <input type="radio" name="visibility" value={o.value} defaultChecked={user.visibility === o.value} className="mt-1 accent-[var(--accent)]" />
+          {VISIBILITIES.map((v) => (
+            <label key={v} className="flex items-start gap-3 px-4 py-3 cursor-pointer">
+              <input type="radio" name="visibility" value={v} defaultChecked={user.visibility === v} className="mt-1 accent-[var(--accent)]" />
               <span className="flex-1">
-                <span className="block font-medium">{o.title}</span>
-                <span className="block text-sm text-muted">{o.desc}</span>
+                <span className="block font-medium">{t.me.visibility[v].title}</span>
+                <span className="block text-sm text-muted">{t.me.visibility[v].desc}</span>
               </span>
             </label>
           ))}
           <div className="px-4 py-3">
             <button type="submit" className={button("dark", "md", "w-full")}>
-              Save
+              {t.common.save}
             </button>
           </div>
         </form>
       </section>
 
       <section className="space-y-2">
-        <h2 className={sectionTitle}>Invite link</h2>
-        <div className={`${card} flex flex-wrap items-center gap-3 p-4`}>
-          <p className="flex-1 min-w-[12rem] text-sm text-muted">Whoever signs up through your link is connected with you straight away.</p>
-          <ShareLinkButton url={inviteUrl} text="See when we’re both free between classes:" label="Share my link" variant="primary" />
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t.lang.title}</h2>
+        <div className={`${card} p-4 space-y-3`}>
+          <p className="text-sm text-muted">{t.lang.hint}</p>
+          <LanguagePicker current={locale} />
         </div>
       </section>
 
       <section className="space-y-2">
-        <h2 className={sectionTitle}>Public link</h2>
+        <h2 className={sectionTitle}>{t.me.inviteTitle}</h2>
+        <div className={`${card} flex flex-wrap items-center gap-3 p-4`}>
+          <p className="flex-1 min-w-[12rem] text-sm text-muted">{t.common.invite.blurb}</p>
+          <ShareLinkButton url={inviteUrl} text={t.common.invite.text} label={t.common.invite.share} variant="primary" />
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className={sectionTitle}>{t.me.publicLink.title}</h2>
         <div className={`${card} p-4 space-y-3`}>
-          <p className="text-sm text-muted">
-            A view-only link to your week that anyone can open without signing up: free/busy only, no course names or rooms.
-          </p>
+          <p className="text-sm text-muted">{t.me.publicLink.blurb}</p>
           {user.shareCode ? (
             <div className="flex flex-wrap items-center gap-2">
-              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}?w=${weekParam(shareWeek)}`} text={weekend ? "When I’m free next week:" : "When I’m free this week:"} label="Share link" variant="primary" />
+              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}?w=${weekParam(shareWeek)}`} text={weekend ? t.me.publicLink.textNextWeek : t.me.publicLink.textThisWeek} label={t.me.publicLink.share} variant="primary" />
               <a href={`/s/${user.shareCode}`} target="_blank" rel="noopener" className={button("secondary")}>
-                Preview ↗
+                {t.me.publicLink.preview}
               </a>
               <form action={setPublicLink}>
                 <input type="hidden" name="on" value="1" />
-                <button className={button("quiet")} title="Make a new link; the old one stops working">
-                  Reset link
+                <button className={button("quiet")} title={t.me.publicLink.resetHint}>
+                  {t.me.publicLink.reset}
                 </button>
               </form>
               <form action={setPublicLink}>
                 <input type="hidden" name="on" value="0" />
-                <button className={button("danger")}>Turn off</button>
+                <button className={button("danger")}>{t.me.publicLink.turnOff}</button>
               </form>
             </div>
           ) : (
             <form action={setPublicLink}>
               <input type="hidden" name="on" value="1" />
-              <button className={button("secondary")}>Create public link</button>
+              <button className={button("secondary")}>{t.me.publicLink.create}</button>
             </form>
           )}
         </div>
       </section>
 
       <section id="discover" className="space-y-2 scroll-mt-6">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Discover</h2>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t.me.discover.title}</h2>
         <div className="rounded-2xl bg-surface border border-line">
           <DiscoverToggle on={user.discoverable} />
           <PhoneForm phone={user.phone} />
@@ -123,48 +132,48 @@ export default async function MePage() {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Calendar link</h2>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t.me.calendar.title}</h2>
         {cal ? (
           <div className="rounded-2xl bg-surface border border-line divide-y divide-line">
             <div className="px-4 py-3 text-sm space-y-1">
-              <div className="flex justify-between"><span className="text-muted">Sessions loaded</span><span className="font-medium tabular-nums">{cal.eventCount}</span></div>
-              <div className="flex justify-between"><span className="text-muted">Last synced</span><span className="font-medium">{relativeAge(cal.lastOkAt, now)}</span></div>
-              {cal.lastError && <p className="text-busy text-xs pt-1">Last refresh failed: {cal.lastError}</p>}
+              <div className="flex justify-between"><span className="text-muted">{t.me.calendar.sessions}</span><span className="font-medium tabular-nums">{cal.eventCount.toLocaleString(LOCALE_TAGS[locale])}</span></div>
+              <div className="flex justify-between"><span className="text-muted">{t.me.calendar.lastSynced}</span><span className="font-medium">{relativeAge(cal.lastOkAt, t.common.ago, now)}</span></div>
+              {cal.lastError && <p className="text-busy text-xs pt-1">{t.me.calendar.lastError(icsErrorText(cal.lastError, t.setup.errors))}</p>}
             </div>
             <div className="px-4 py-3 flex gap-2">
               <form action={refreshMyCalendar} className="flex-1">
-                <button className={button("secondary", "md", "w-full")}>Refresh now</button>
+                <button className={button("secondary", "md", "w-full")}>{t.me.calendar.refresh}</button>
               </form>
               <Link href={`/u/${user.id}`} className={button("secondary", "md", "flex-1")}>
-                View my week
+                {t.me.calendar.viewWeek}
               </Link>
             </div>
             <details className="px-4 py-3">
-              <summary className="text-sm font-medium cursor-pointer">Replace the link</summary>
+              <summary className="text-sm font-medium cursor-pointer">{t.me.calendar.replace}</summary>
               <div className="pt-3">
                 <CalendarLinkForm stay compact />
               </div>
             </details>
             <form action={removeMyCalendar} className="px-4 py-3">
-              <button className={button("danger", "sm", "-ml-3")}>Remove my schedule</button>
+              <button className={button("danger", "sm", "-ml-3")}>{t.me.calendar.remove}</button>
             </form>
           </div>
         ) : (
           <div className="rounded-2xl bg-surface border border-line p-4 space-y-3">
-            <p className="text-sm text-muted">No calendar yet.</p>
+            <p className="text-sm text-muted">{t.me.calendar.none}</p>
             <CalendarLinkForm />
           </div>
         )}
       </section>
 
       <form action={signOut}>
-        <button className={button("secondary", "md", "w-full text-muted")}>Sign out</button>
+        <button className={button("secondary", "md", "w-full text-muted")}>{t.me.signOut}</button>
       </form>
 
       <p className="text-center text-xs text-muted">
-        dispo is open source.{" "}
+        {t.me.openSource}{" "}
         <a href="https://github.com/a2br/dispo" target="_blank" rel="noopener" className="link">
-          View the code on GitHub ↗
+          {t.me.viewCode}
         </a>
       </p>
     </main>

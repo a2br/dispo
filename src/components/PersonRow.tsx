@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useT } from "@/i18n/client";
 import type { PersonView } from "@/lib/present";
 import { Avatar } from "./Avatar";
 import { StatusPill } from "./StatusPill";
@@ -16,6 +19,7 @@ export function PersonRow({
   pinned?: boolean;
   dim?: boolean; // busy people are shown after free ones, greyed out
 }) {
+  const t = useT();
   return (
     <li className={`px-4 py-3 transition-opacity ${dim ? "opacity-55 hover:opacity-100" : ""}`}>
       <div className="flex items-center gap-3">
@@ -25,7 +29,7 @@ export function PersonRow({
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="font-bold truncate group-hover:text-accent-ink transition-colors">{person.name}</span>
               {pinned && (
-                <span className="text-accent text-xs shrink-0" aria-label="Pinned" title="Pinned">
+                <span className="text-accent text-xs shrink-0" aria-label={t.common.pinned} title={t.common.pinned}>
                   ★
                 </span>
               )}

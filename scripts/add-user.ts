@@ -8,7 +8,7 @@ import { connectCalendar } from "../src/lib/calendar";
 async function main() {
   const [email, name, url] = process.argv.slice(2);
   if (!email || !name || !url) throw new Error("usage: add-user.ts <email> <name> <ics url>");
-  const u = await upsertUserFromProfile({ email, name });
+  const u = await upsertUserFromProfile({ email, name, locale: "en" });
   const { count } = await connectCalendar(u.id, url);
   console.log(`${u.name} <${u.email}>: ${count} sessions`);
 }

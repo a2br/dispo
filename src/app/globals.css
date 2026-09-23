@@ -230,3 +230,8 @@ main {
     content: " · ";
   }
 }
+
+/* German compounds ("Verbindungsanfrage") would overflow narrow buttons and cells: let them break. */
+html:lang(de) {
+  hyphens: auto;
+}

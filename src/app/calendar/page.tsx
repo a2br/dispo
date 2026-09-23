@@ -17,8 +17,11 @@ import { StatusPill } from "@/components/StatusPill";
 import { WeekView } from "@/components/WeekView";
 import { WeekNav } from "@/components/WeekNav";
 import { button } from "@/lib/ui";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Calendar" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).calendar.title };
+}
 
 const MAX_MEMBERS = 12;
 
@@ -28,6 +31,8 @@ const MAX_MEMBERS = 12;
  */
 export default async function CalendarPage({ searchParams }: PageProps<"/calendar">) {
   const viewer = await requireUser();
+  const t = await getT();
+  const tc = t.calendar;
   const sp = await searchParams;
   const w = typeof sp.w === "string" ? sp.w : undefined;
   const requested = typeof sp.with === "string" ? sp.with.split(",").map((s) => s.trim()).filter(Boolean) : [];
@@ -95,12 +100,14 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
     <main className="flex flex-col h-[calc(100dvh-var(--nav-h))] py-4 md:py-8 gap-3">
       <header className="flex flex-wrap items-center gap-x-2 gap-y-1 shrink-0">
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight truncate">Calendar</h1>
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight truncate">{tc.title}</h1>
         </div>
-        <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={weekHref} />
+        <div className={`flex justify-end ${tc.week.ownRowOnPhones ? "max-sm:basis-full" : ""}`}>
+          <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={weekHref} />
+        </div>
         {!comparing && myCal && (
           <div className="basis-full">
-            <StatusPill status={statusView(statusFrom(myToday, now), "full")} />
+            <StatusPill status={statusView(statusFrom(myToday, now), t, "full")} />
           </div>
         )}
       </header>
@@ -109,10 +116,12 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         <PeoplePicker me={{ id: viewer.id, name: viewer.name }} friends={friends} selected={selected} groups={pickerGroups} week={w ? weekParam(weekStart) : null} />
         {hiddenCount > 0 && (
           <p className="text-sm text-muted">
-            {hiddenCount === 1 ? "1 person isn’t shown" : `${hiddenCount} people aren’t shown`}:{" "}
-            {mine ? "their schedule is private." : (
+            {tc.hidden(hiddenCount)}{" "}
+            {mine ? tc.hiddenPrivate(hiddenCount) : (
               <>
-                add <Link href="/setup?next=%2Fcalendar" className="link">your schedule</Link> to compare with people you’re not connected with.
+                {tc.hiddenGiveToGet.before}
+                <Link href="/setup?next=%2Fcalendar" className="link">{tc.hiddenGiveToGet.link}</Link>
+                {tc.hiddenGiveToGet.after}
               </>
             )}
           </p>
@@ -122,7 +131,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <Link href={`/groups/${match.id}`} className={button("secondary", "sm")}>
               <span className="text-muted font-normal">★</span> {match.name}
-              <span className="text-muted font-normal">· group page</span>
+              <span className="text-muted font-normal">· {tc.groupPage}</span>
             </Link>
           </div>
         )}
@@ -134,14 +143,14 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         <>
           <WeekView weekStart={weekStart} events={myWeek.map(eventView)} todayIndex={todayIdx} now={now} masked={false} />
           <p className="shrink-0 text-[11px] text-muted text-center">
-            Synced {relativeAge(myCal.lastOkAt, now)}
-            {myCal.lastError ? " · last refresh failed" : ""} · <Link href="/me" className="link">manage in Settings</Link>
+            {myCal.lastOkAt ? tc.synced(relativeAge(myCal.lastOkAt, t.common.ago, now)) : tc.neverSynced}
+            {myCal.lastError ? ` · ${tc.refreshFailed}` : ""} · <Link href="/me" className="link">{tc.manage}</Link>
           </p>
         </>
       ) : (
         <div className="border border-line px-4 py-10 text-center space-y-3">
-          <p className="text-muted">Add your schedule to see your week here, then add friends to find a time together.</p>
-          <Link href="/setup" className={button("primary")}>Add my schedule</Link>
+          <p className="text-muted">{tc.empty}</p>
+          <Link href="/setup" className={button("primary")}>{tc.addSchedule}</Link>
         </div>
       )}
     </main>

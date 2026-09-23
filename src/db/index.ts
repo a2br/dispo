@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   invite_code TEXT,
   share_code TEXT,
   hide_invite_card INTEGER NOT NULL DEFAULT 0,
+  locale TEXT,
   created_at INTEGER NOT NULL
 );
 CREATE UNIQUE INDEX IF NOT EXISTS users_email_idx ON users(email);
@@ -85,6 +86,7 @@ async function migrate(client: Client) {
     await client.execute("ALTER TABLE users ADD COLUMN invite_code TEXT");
   if (!names.has("share_code")) await client.execute("ALTER TABLE users ADD COLUMN share_code TEXT");
   if (!names.has("hide_invite_card")) await client.execute("ALTER TABLE users ADD COLUMN hide_invite_card INTEGER NOT NULL DEFAULT 0");
+  if (!names.has("locale")) await client.execute("ALTER TABLE users ADD COLUMN locale TEXT");
   await client.execute(
     "CREATE TABLE IF NOT EXISTS group_invites (group_id TEXT NOT NULL REFERENCES saved_groups(id) ON DELETE CASCADE, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, invited_by TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, created_at INTEGER NOT NULL, PRIMARY KEY (group_id, user_id))",
   );

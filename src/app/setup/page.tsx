@@ -2,32 +2,39 @@ import type { Metadata } from "next";
 import { requireUser, safeNext } from "@/lib/auth";
 import { CalendarLinkForm } from "@/components/CalendarLinkForm";
 import { ExternalLink } from "@/components/ExternalLink";
+import { getT } from "@/i18n/server";
 
 /** Opens the schedule with the iCal export pop-up already showing, so it's one tap to copy the link. */
 const ICS_EXPORT_URL = "https://campus.epfl.ch/isacademia/schedule?view=work_week#/isacademia/ics?createStack=1";
 
-export const metadata: Metadata = { title: "Add your schedule" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).setup.title };
+}
 
 /** One screen, no scrolling: three short steps, then a single paste button. */
 export default async function SetupPage({ searchParams }: PageProps<"/setup">) {
   await requireUser();
+  const t = (await getT()).setup;
   const sp = await searchParams;
   const next = safeNext(typeof sp.next === "string" ? sp.next : null) ?? undefined;
   const steps: React.ReactNode[] = [
     <>
-      Open <ExternalLink href={ICS_EXPORT_URL}>your IS-Academia schedule</ExternalLink>{" "}
-      <span className="text-muted">(sign in with your EPFL account if asked)</span>
+      {t.step1.before}
+      <ExternalLink href={ICS_EXPORT_URL}>{t.step1.link}</ExternalLink>
+      {t.step1.after} <span className="text-muted">{t.step1.note}</span>
     </>,
     <>
-      In the pop-up, tap <b>Copy ICS link</b> <span className="text-muted">(the small link under the red button)</span>
+      {t.step2.before}
+      <b>{t.step2.button}</b>
+      {t.step2.after} <span className="text-muted">{t.step2.note}</span>
     </>,
-    <>Come back and tap the button below</>,
+    <>{t.step3}</>,
   ];
   return (
     <main className="mx-auto max-w-md min-h-[calc(100dvh-var(--nav-h))] flex flex-col justify-center py-6 gap-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Add your schedule</h1>
-        <p className="text-muted">One paste. It stays in sync with IS-Academia on its own.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
+        <p className="text-muted">{t.lede}</p>
       </header>
 
       <ol className="border border-line divide-y divide-line">
@@ -41,7 +48,7 @@ export default async function SetupPage({ searchParams }: PageProps<"/setup">) {
 
       <CalendarLinkForm next={next} />
 
-      <p className="text-xs text-muted">The link contains a private key: it’s stored encrypted and only used to refresh your timetable. Remove it anytime in Me.</p>
+      <p className="text-xs text-muted">{t.fineprint}</p>
     </main>
   );
 }

@@ -3,24 +3,20 @@
 import { useState } from "react";
 import { busyRuns, commonFree, dayWindow, hoursSpan, type Interval, type MemberData } from "@/lib/groupcalc";
 import { addDays, fmtDayNum, fmtDayShort, fmtTime, localParts } from "@/lib/time";
+import { useLocale, useT } from "@/i18n/client";
+import { LOCALE_TAGS } from "@/i18n/config";
 import { Avatar } from "./Avatar";
 
 const DAYS = 5;
 
 type Props = { weekStart: number; now: number; todayIndex: number | null; members: MemberData[] };
 
-function fmtDuration(ms: number): string {
-  const m = Math.round(ms / 60_000);
-  const h = Math.floor(m / 60);
-  const r = m % 60;
-  return h === 0 ? `${r} min` : r === 0 ? `${h} h` : `${h} h ${r}`;
-}
-
 function SlotChip({ w }: { w: Interval }) {
+  const t = useT();
   return (
     <span className="rounded-sm bg-free/10 text-free border border-free/30 px-1.5 py-0.5 text-xs font-bold tabular-nums whitespace-nowrap">
       {fmtTime(w.start)}–{fmtTime(w.end)}
-      <span className="font-normal opacity-75"> · {fmtDuration(w.end - w.start)}</span>
+      <span className="font-normal opacity-75"> · {t.common.duration(Math.round((w.end - w.start) / 60_000))}</span>
     </span>
   );
 }
@@ -31,6 +27,9 @@ function SlotChip({ w }: { w: Interval }) {
  * line; wider screens list the whole week beside the grid.
  */
 export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
+  const t = useT();
+  const tc = t.calendar;
+  const locale = useLocale();
   const dayStarts = Array.from({ length: DAYS }, (_, i) => addDays(weekStart, i));
   const [day, setDay] = useState(todayIndex != null && todayIndex < DAYS ? todayIndex : 0);
 
@@ -52,11 +51,11 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
   const nowFrac = day === todayIndex ? (now - win.start) / span : null;
   const pastFrac = todayIndex == null ? (weekStart < now ? 1 : 0) : day < todayIndex ? 1 : day === todayIndex ? Math.max(0, Math.min(1, (now - win.start) / span)) : 0;
   const cols = `2.5rem minmax(3.5rem, 1.2fr) repeat(${members.length}, minmax(3rem, 1fr))`;
-  const firstName = (m?: MemberData) => (m ? (m.isSelf ? "you" : m.name.split(" ")[0]) : "");
+  const firstName = (m?: MemberData) => (m && !m.isSelf ? m.name.split(" ")[0] : null);
 
   const missingNote = missing.length > 0 && (
     <p className="text-xs text-muted">
-      {missing.map((m) => m.name.split(" ")[0]).join(", ")} {missing.length === 1 ? "has" : "have"} no schedule, so {missing.length === 1 ? "isn’t" : "aren’t"} counted.
+      {tc.missing(new Intl.ListFormat(LOCALE_TAGS[locale], { type: "conjunction" }).format(missing.map((m) => m.name.split(" ")[0])), missing.length)}
     </p>
   );
 
@@ -65,11 +64,11 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
       {/* Left on wide screens: the week's common slots + day tabs */}
       <div className="flex flex-col gap-2 shrink-0 lg:gap-4 lg:min-h-0">
         <section className="hidden lg:block">
-          <h2 className="text-sm font-bold text-muted uppercase tracking-wide mb-2">Everyone free</h2>
+          <h2 className="text-sm font-bold text-muted uppercase tracking-wide mb-2">{tc.everyoneFree}</h2>
           {!canCompare ? (
-            <p className="text-sm text-muted">Need at least two people with a schedule.</p>
+            <p className="text-sm text-muted">{tc.needTwo}</p>
           ) : !anyFree ? (
-            <p className="text-sm text-muted">No common slot of 30 min or more left this week.</p>
+            <p className="text-sm text-muted">{tc.noSlotWeek}</p>
           ) : (
             <ul className="border border-line divide-y divide-line">
               {dayStarts.map((ds, i) =>
@@ -77,7 +76,7 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
                   <li key={i}>
                     <button onClick={() => setDay(i)} className={`w-full flex items-start gap-3 px-3 py-2 text-left hover:bg-subtle ${i === day ? "bg-subtle" : ""}`}>
                       <span className="w-14 shrink-0 text-sm whitespace-nowrap">
-                        <span className="font-bold">{fmtDayShort(ds)}</span> <span className="text-muted">{fmtDayNum(ds)}</span>
+                        <span className="font-bold">{fmtDayShort(ds, locale)}</span> <span className="text-muted">{fmtDayNum(ds)}</span>
                       </span>
                       <span className="flex flex-wrap gap-1">
                         {free[i].map((w) => (
@@ -103,9 +102,9 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
                 onClick={() => setDay(i)}
                 className={`py-1.5 flex flex-col items-center gap-0.5 border ${isSel ? "bg-foreground text-background border-foreground" : "bg-surface border-line"}`}
               >
-                <span className={`text-[11px] uppercase tracking-wide ${isSel ? "opacity-80" : "text-muted"}`}>{fmtDayShort(ds)}</span>
+                <span className={`text-[11px] uppercase tracking-wide ${isSel ? "opacity-80" : "text-muted"}`}>{fmtDayShort(ds, locale)}</span>
                 <span className={`text-base font-bold leading-none ${i === todayIndex && !isSel ? "text-accent-ink" : ""}`}>{fmtDayNum(ds)}</span>
-                <span className={`text-[10px] tabular-nums ${freeMs > 0 ? (isSel ? "" : "text-free font-bold") : "opacity-40"}`}>{freeMs > 0 ? fmtDuration(freeMs) : "—"}</span>
+                <span className={`text-[10px] tabular-nums ${freeMs > 0 ? (isSel ? "" : "text-free font-bold") : "opacity-40"}`}>{freeMs > 0 ? t.common.duration(Math.round(freeMs / 60_000)) : "—"}</span>
               </button>
             );
           })}
@@ -114,12 +113,12 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
         {/* Phones: just the selected day's slots, one line */}
         <div className="lg:hidden flex items-center gap-2 min-h-7 overflow-hidden">
           {!canCompare ? (
-            <span className="text-xs text-muted">Need at least two people with a schedule.</span>
+            <span className="text-xs text-muted">{tc.needTwo}</span>
           ) : free[day].length === 0 ? (
-            <span className="text-xs text-muted">{day === todayIndex ? "No common slot left today." : "No common slot this day."}</span>
+            <span className="text-xs text-muted">{day === todayIndex ? tc.noSlotToday : tc.noSlotDay}</span>
           ) : (
             <>
-              <span className="text-xs font-bold text-muted uppercase tracking-wide shrink-0">All free</span>
+              <span className="text-xs font-bold text-muted uppercase tracking-wide shrink-0">{tc.allFree}</span>
               <span className="flex gap-1 overflow-hidden">
                 {free[day].map((w) => (
                   <SlotChip key={w.start} w={w} />
@@ -135,11 +134,11 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
       <div className="flex flex-col flex-1 min-h-72 border border-line bg-surface overflow-x-auto">
         <div className="grid shrink-0 min-w-fit" style={{ gridTemplateColumns: cols }}>
           <div className="border-b border-line" />
-          <div className="border-b border-l border-line px-1 py-1.5 text-center text-[11px] font-bold text-free self-stretch grid place-items-center">All</div>
+          <div className="border-b border-l border-line px-1 py-1.5 text-center text-[11px] font-bold text-free self-stretch grid place-items-center">{tc.allColumn}</div>
           {members.map((m) => (
             <div key={m.id} className="border-b border-l border-line px-1 py-1.5 flex flex-col items-center gap-0.5 min-w-0">
               <Avatar name={m.name} size={20} />
-              <span className="text-[11px] truncate max-w-full">{m.isSelf ? "You" : m.name.split(" ")[0]}</span>
+              <span className="text-[11px] truncate max-w-full">{m.isSelf ? tc.you : m.name.split(" ")[0]}</span>
             </div>
           ))}
         </div>
@@ -169,9 +168,9 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
                     key={`r${r.start}`}
                     className={`m-px px-1 py-0.5 text-[10px] leading-tight overflow-hidden ${everyone ? "bg-free/15 border border-free/40" : "bg-warn/15 border border-warn/50 text-warn-ink"}`}
                     style={{ gridColumn: 2, gridRow: `${rowOf(r.start)} / ${rowOf(r.end)}` }}
-                    title={`${fmtTime(r.start)}–${fmtTime(r.end)} · ${everyone ? "everyone free" : `all but ${firstName(who)}`}`}
+                    title={`${fmtTime(r.start)}–${fmtTime(r.end)} · ${everyone ? tc.everyoneFreeTitle : tc.allBut(firstName(who))}`}
                   >
-                    {allButOne && r.end - r.start >= 45 * 60_000 && `all but ${firstName(who)}`}
+                    {allButOne && r.end - r.start >= 45 * 60_000 && tc.allBut(firstName(who))}
                   </div>
                 );
               })}
@@ -184,7 +183,7 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
                   className="m-px text-[10px] text-muted grid place-items-center"
                   style={{ gridColumn: i + 3, gridRow: `1 / ${rows + 1}`, background: "repeating-linear-gradient(135deg, transparent 0 6px, color-mix(in oklab, var(--muted) 15%, transparent) 6px 12px)" }}
                 >
-                  <span className="[writing-mode:vertical-rl] rotate-180">no schedule</span>
+                  <span className="[writing-mode:vertical-rl] rotate-180">{tc.noSchedule}</span>
                 </div>
               ) : (
                 m.blocks
@@ -199,7 +198,7 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
                         background: "color-mix(in oklab, var(--busy) 16%, var(--surface))",
                         borderColor: "color-mix(in oklab, var(--busy) 40%, var(--surface))",
                       }}
-                      title={`${m.isSelf ? "You" : m.name}: busy ${fmtTime(b.start)}–${fmtTime(b.end)}`}
+                      title={tc.busyTitle(m.isSelf ? null : m.name, `${fmtTime(b.start)}–${fmtTime(b.end)}`)}
                     />
                   ))
               ),

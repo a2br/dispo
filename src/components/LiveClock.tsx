@@ -1,17 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-const fmt = new Intl.DateTimeFormat("en-GB", { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" });
+import { useEffect, useMemo, useState } from "react";
+import { useLocale } from "@/i18n/client";
+import { LOCALE_TAGS } from "@/i18n/config";
 
 /**
- * "Tuesday 14:05", ticking on each minute boundary. Starts from the server's `now` so hydration matches.
+ * "Tuesday 14:05" / "mardi 14:05" / "Dienstag, 14:05", ticking on each minute boundary. Starts from the server's `now` so hydration matches.
  * Coming back to a tab that sat in the background also refreshes the page, so the statuses next to it catch up.
  */
 export function LiveClock({ now, className }: { now: number; className?: string }) {
   const router = useRouter();
   const [ms, setMs] = useState(now);
+  const locale = useLocale();
+  const fmt = useMemo(() => new Intl.DateTimeFormat(LOCALE_TAGS[locale], { weekday: "long", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Zurich" }), [locale]);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;

@@ -1,3 +1,5 @@
+import { isLocale } from "@/i18n/config";
+import { messages } from "@/i18n/messages";
 import { mergeBlocks } from "@/lib/blocks";
 import { eventsBetween, getCalendar } from "@/lib/calendar";
 import { userByShareCode } from "@/lib/invites";
@@ -6,12 +8,15 @@ import { addDays, weekStartFromParam } from "@/lib/time";
 
 async function card(code: string, w: string | undefined) {
   const owner = await userByShareCode(code);
-  if (!owner) return shareCard({ title: "Someone’s week", subtitle: "See when they’re free. Open it, no sign-up needed." });
+  if (!owner) return shareCard({ locale: "en", ...messages.en.og.someone });
+  // In the owner's language: they're the one sharing it.
+  const locale = isLocale(owner.locale) ? owner.locale : "en";
+  const t = messages[locale];
   const first = owner.name.split(" ")[0];
-  if (!(await getCalendar(owner.id))) return shareCard({ eyebrow: "Free / busy", title: `${first}’s week`, subtitle: `${first} hasn’t added a schedule yet.` });
+  if (!(await getCalendar(owner.id))) return shareCard({ locale, eyebrow: t.og.freeBusy, title: t.share.weekOf(first), subtitle: t.share.noSchedule(first) });
   const weekStart = weekStartFromParam(w);
   const events = await eventsBetween(owner.id, weekStart, addDays(weekStart, 7));
-  return weekCard({ name: owner.name, weekStart, blocks: mergeBlocks(events) });
+  return weekCard({ locale, name: owner.name, weekStart, blocks: mergeBlocks(events) });
 }
 
 /**

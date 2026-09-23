@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isLocale } from "@/i18n/config";
+import { messages } from "@/i18n/messages";
+import { getT } from "@/i18n/server";
 import { appUrl, getUser } from "@/lib/auth";
 import { userByInviteCode } from "@/lib/invites";
 import { button } from "@/lib/ui";
@@ -14,10 +17,15 @@ const firstName = (n: string) => n.split(" ")[0];
 export async function generateMetadata({ params }: PageProps<"/i/[code]">): Promise<Metadata> {
   const { code } = await params;
   const inviter = await userByInviteCode(code);
-  if (!inviter) return { title: "Invite" };
-  const title = `${firstName(inviter.name)} invited you to dispo`;
-  const description = `See when you and ${firstName(inviter.name)} are both free between classes. Sign in with your EPFL account.`;
-  return { title: { absolute: title }, description, openGraph: { title, description, type: "website" }, twitter: { card: "summary_large_image", title, description } };
+  const t = await getT();
+  if (!inviter) return { title: t.share.invite.title };
+  const first = firstName(inviter.name);
+  const title = t.share.invite.invitedYou(first);
+  const description = t.share.invite.description(first);
+  // The link preview speaks the inviter's language (crawlers send no cookie, and the inviter is the one sharing it).
+  const o = messages[isLocale(inviter.locale) ? inviter.locale : "en"].share.invite;
+  const og = { title: o.invitedYou(first), description: o.description(first) };
+  return { title: { absolute: title }, description, openGraph: { ...og, type: "website" }, twitter: { card: "summary_large_image", ...og } };
 }
 
 /** Personal invite: "Anatole invited you". Signing in connects you with them straight away. */
@@ -26,17 +34,18 @@ export default async function PersonalInvite({ params }: PageProps<"/i/[code]">)
   const inviter = await userByInviteCode(code);
   if (!inviter) notFound();
   const viewer = await getUser();
+  const t = await getT();
   const first = firstName(inviter.name);
   const accept = `/i/${code}/accept`;
 
   if (viewer?.id === inviter.id) {
     return (
       <main className="mx-auto max-w-md py-10 space-y-6">
-        <h1 className="text-2xl font-bold tracking-tight">This is your invite link</h1>
-        <p className="text-muted">Anyone at EPFL who opens it and signs in is connected with you right away, so you’ll see each other’s free time.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.share.invite.yourLink}</h1>
+        <p className="text-muted">{t.share.invite.yourLinkBlurb}</p>
         <div className="flex flex-wrap gap-2">
-          <ShareLinkButton url={`${appUrl()}/i/${code}`} text="See when we’re both free between classes:" label="Share my link" />
-          <Link href="/" className={button("secondary", "sm")}>Back to dispo</Link>
+          <ShareLinkButton url={`${appUrl()}/i/${code}`} text={t.common.invite.text} label={t.common.invite.share} />
+          <Link href="/" className={button("secondary", "sm")}>{t.share.invite.backHome}</Link>
         </div>
       </main>
     );
@@ -49,19 +58,19 @@ export default async function PersonalInvite({ params }: PageProps<"/i/[code]">)
         <div className="flex items-center gap-3">
           <Avatar name={inviter.name} size={56} />
           <div>
-            <p className="text-sm text-muted">Invitation from</p>
+            <p className="text-sm text-muted">{t.share.invite.from}</p>
             <p className="text-xl font-bold">{inviter.name}</p>
           </div>
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">See when you and {first} are both free.</h1>
-        <p className="text-muted">dispo shows your EPFL timetables side by side, so finding a gap for lunch or a project meeting takes one look.</p>
+        <h1 className="text-3xl font-bold tracking-tight">{t.share.invite.headline(first)}</h1>
+        <p className="text-muted">{t.share.invite.pitch}</p>
       </div>
       {viewer ? (
         <Link href={accept} prefetch={false} className={button("primary", "lg", "w-full")}>
-          Connect with {first}
+          {t.share.invite.connect(first)}
         </Link>
       ) : (
-        <SignIn next={accept} label={`Continue with EPFL Google`} />
+        <SignIn next={accept} />
       )}
       <Fineprint />
     </main>

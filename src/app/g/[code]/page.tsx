@@ -7,16 +7,17 @@ import { button } from "@/lib/ui";
 import { Avatar } from "@/components/Avatar";
 import { Fineprint, SignIn } from "@/components/SignIn";
 import { Wordmark } from "@/components/Wordmark";
+import { LOCALE_TAGS } from "@/i18n/config";
+import { getLocale, getT } from "@/i18n/server";
 
 const firstName = (n: string) => n.split(" ")[0];
 
 export async function generateMetadata({ params }: PageProps<"/g/[code]">): Promise<Metadata> {
   const { code } = await params;
-  const inv = await groupByInviteCode(code);
-  if (!inv) return { title: "Group" };
-  const n = inv.people.length;
-  const title = `Join “${inv.group.name}” on dispo`;
-  const description = `${firstName(inv.owner.name)} and ${n - 1 === 0 ? "you" : `${n - 1} other${n - 1 === 1 ? "" : "s"}`}: see when everyone is free between classes. Sign in with your EPFL account.`;
+  const [inv, t] = await Promise.all([groupByInviteCode(code), getT()]);
+  if (!inv) return { title: t.groups.fallbackTitle };
+  const title = t.groups.invite.metaTitle(inv.group.name);
+  const description = t.groups.invite.metaDescription(firstName(inv.owner.name), inv.people.length - 1);
   return { title: { absolute: title }, description, openGraph: { title, description, type: "website" }, twitter: { card: "summary_large_image", title, description } };
 }
 
@@ -34,6 +35,9 @@ export default async function GroupInvitePage({ params }: PageProps<"/g/[code]">
   const names = inv.people.map((p) => firstName(p.name));
 
   if (viewer && isMember) redirect(`/groups/${inv.group.id}`);
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
+  const ti = t.groups.invite;
+  const shown = [...names.slice(0, 3), ...(names.length > 3 ? [ti.more(names.length - 3)] : [])];
 
   return (
     <main className="mx-auto max-w-md min-h-dvh flex flex-col justify-center py-10 gap-8">
@@ -46,15 +50,14 @@ export default async function GroupInvitePage({ params }: PageProps<"/g/[code]">
             </span>
           ))}
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">Join “{inv.group.name}”</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{ti.title(inv.group.name)}</h1>
         <p className="text-muted">
-          {names.slice(0, 3).join(", ")}
-          {names.length > 3 ? ` and ${names.length - 3} more` : ""} {names.length === 1 ? "is" : "are"} here. Sign in once and you’ll see when everyone’s free, connected with the whole group.
+          {ti.here(new Intl.ListFormat(LOCALE_TAGS[locale], { type: "conjunction" }).format(shown), names.length)} {ti.pitch}
         </p>
       </div>
       {viewer ? (
         <Link href={join} prefetch={false} className={button("primary", "lg", "w-full")}>
-          Join the group
+          {ti.join}
         </Link>
       ) : (
         <SignIn next={join} />

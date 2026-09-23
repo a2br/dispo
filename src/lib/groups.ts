@@ -1,6 +1,7 @@
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { db, dbReady, schema } from "@/db";
 import type { SavedGroup, User } from "@/db/schema";
+import { getT } from "@/i18n/server";
 import { newCode } from "./codes";
 
 /**
@@ -100,7 +101,7 @@ export async function createGroup(ownerId: string, name: string, memberIds: stri
   await dbReady;
   const id = crypto.randomUUID();
   const inviteCode = newCode();
-  await db.insert(schema.savedGroups).values({ id, ownerId, name: cleanName(name) || "Untitled group", inviteCode, createdAt: Date.now() });
+  await db.insert(schema.savedGroups).values({ id, ownerId, name: cleanName(name) || (await getT()).groups.untitled, inviteCode, createdAt: Date.now() });
   await db.insert(schema.savedGroupMembers).values({ groupId: id, userId: ownerId });
   await applyPicks(ownerId, id, [ownerId], await splitPicks(ownerId, memberIds));
   return { id, inviteCode };

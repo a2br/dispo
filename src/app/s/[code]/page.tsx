@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
+import { isLocale } from "@/i18n/config";
+import { messages } from "@/i18n/messages";
+import { getLocale, getT } from "@/i18n/server";
 import { getUser } from "@/lib/auth";
 import { STALE_MS, eventsBetween, getCalendar, refreshCalendar, statusFrom } from "@/lib/calendar";
 import { mergeBlocks } from "@/lib/blocks";
@@ -21,13 +24,20 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/s/[
   const { code } = await params;
   const sp = await searchParams;
   const owner = await userByShareCode(code);
-  if (!owner) return { title: "Schedule", robots: { index: false, follow: false } };
+  const t = await getT();
+  const locale = await getLocale();
+  if (!owner) return { title: t.share.schedule.title, robots: { index: false, follow: false } };
+  const first = firstName(owner.name);
   // The preview draws the week this link opens on, so `?w=` is carried into the image URL too.
   const weekStart = weekStartFromParam(typeof sp.w === "string" ? sp.w : undefined);
-  const images = [{ url: `/s/${code}/og?w=${weekParam(weekStart)}`, width: 1200, height: 630, alt: `${firstName(owner.name)}’s week on dispo` }];
-  const title = `${firstName(owner.name)}’s week`;
-  const description = `When ${firstName(owner.name)} is free and busy, ${fmtWeekLabel(weekStart)}. See when you’re both free on dispo.`;
-  return { title, description, robots: { index: false, follow: false }, openGraph: { title, description, images }, twitter: { card: "summary_large_image", title, description, images } };
+  const title = t.share.weekOf(first);
+  const description = t.share.schedule.description(first, fmtWeekLabel(weekStart, locale));
+  // The link preview speaks the owner's language (crawlers send no cookie, and the owner is the one sharing it).
+  const ownerLocale = isLocale(owner.locale) ? owner.locale : "en";
+  const o = messages[ownerLocale].share;
+  const og = { title: o.weekOf(first), description: o.schedule.description(first, fmtWeekLabel(weekStart, ownerLocale)) };
+  const images = [{ url: `/s/${code}/og?w=${weekParam(weekStart)}`, width: 1200, height: 630, alt: o.schedule.imageAlt(first) }];
+  return { title, description, robots: { index: false, follow: false }, openGraph: { ...og, images }, twitter: { card: "summary_large_image", ...og, images } };
 }
 
 /**
@@ -39,6 +49,7 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
   const sp = await searchParams;
   const owner = await userByShareCode(code);
   if (!owner) notFound();
+  const t = await getT();
   const signedIn = await getUser();
   // The owner previews exactly what visitors see.
   const viewer = signedIn?.id === owner.id ? null : signedIn;
@@ -54,11 +65,11 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
 
   const nudge = viewer ? (
     <Link href={`/calendar?with=${owner.id}`} className={button("secondary")}>
-      Compare with mine
+      {t.share.schedule.compareMine}
     </Link>
   ) : (
     <a href={`/api/auth/google?next=${encodeURIComponent(joinNext)}`} className={button("secondary")}>
-      See when we’re both free
+      {t.share.schedule.bothFree}
     </a>
   );
 
@@ -67,8 +78,8 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
       <header className="flex flex-wrap items-center gap-x-3 gap-y-2 shrink-0">
         <Avatar name={owner.name} size={44} />
         <div className="flex-1 min-w-[9rem]">
-          <h1 className="text-xl font-bold tracking-tight truncate">{first}’s week</h1>
-          {cal && <StatusPill status={statusView(statusFrom(today, now), "busy")} />}
+          <h1 className="text-xl font-bold tracking-tight truncate">{t.share.weekOf(first)}</h1>
+          {cal && <StatusPill status={statusView(statusFrom(today, now), t, "busy")} />}
         </div>
         <div className="ml-auto">{nudge}</div>
       </header>
@@ -79,18 +90,18 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
             <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={(w) => `/s/${code}?w=${weekParam(w)}`} />
           </div>
           <div className={`flex flex-col ${viewer ? "flex-1 min-h-0" : "h-[70dvh] min-h-80"}`}>
-            <WeekView weekStart={weekStart} events={busyViews(mergeBlocks(week))} todayIndex={todayIndexInWeek(weekStart, now)} now={now} masked={false} />
+            <WeekView weekStart={weekStart} events={busyViews(mergeBlocks(week), t)} todayIndex={todayIndexInWeek(weekStart, now)} now={now} masked={false} />
           </div>
         </>
       ) : (
-        <p className={`${card} px-4 py-8 text-center text-muted`}>{first} hasn’t added a schedule yet.</p>
+        <p className={`${card} px-4 py-8 text-center text-muted`}>{t.share.noSchedule(first)}</p>
       )}
 
       {!viewer && (
         <section className={`${card} p-4 space-y-3 shrink-0`}>
           <div>
-            <h2 className="font-bold">Find a time with {first}</h2>
-            <p className="text-sm text-muted">Sign in with your EPFL account and add your timetable once. You’ll be connected with {first} and see both weeks side by side.</p>
+            <h2 className="font-bold">{t.share.findTime(first)}</h2>
+            <p className="text-sm text-muted">{t.share.schedule.signInBlurb(first)}</p>
           </div>
           <SignIn next={joinNext} />
         </section>

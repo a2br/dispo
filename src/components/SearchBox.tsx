@@ -8,8 +8,10 @@ import { input } from "@/lib/ui";
 import { InviteButton } from "./InviteButton";
 import { ExternalLink } from "./ExternalLink";
 import { PersonRow } from "./PersonRow";
+import { useT } from "@/i18n/client";
 
-export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search anyone at EPFL by name" }: { autoFocus?: boolean; inviteUrl?: string; placeholder?: string }) {
+export function SearchBox({ autoFocus = false, inviteUrl, placeholder }: { autoFocus?: boolean; inviteUrl?: string; placeholder?: string }) {
+  const t = useT();
   const [q, setQ] = useState("");
   const [results, setResults] = useState<PersonView[] | null>(null);
   const [directory, setDirectory] = useState<DirectoryPerson[]>([]);
@@ -21,7 +23,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
   useEffect(() => {
     if (term.length < 2) return;
     const my = ++seq.current;
-    const t = setTimeout(async () => {
+    const timer = setTimeout(async () => {
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(term)}`);
         const data = (await res.json()) as { people: PersonView[]; directory?: DirectoryPerson[] };
@@ -38,7 +40,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
         if (my === seq.current) setLoading(false);
       }
     }, 200);
-    return () => clearTimeout(t);
+    return () => clearTimeout(timer);
   }, [term]);
 
   function onChange(value: string) {
@@ -66,7 +68,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
           autoFocus={autoFocus}
           value={q}
           onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
+          placeholder={placeholder ?? t.people.search.placeholder}
           autoComplete="off"
           className={input("lg", "pl-10")}
         />
@@ -74,7 +76,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
       {term.length >= 2 && (
         <div className="mt-3 space-y-3 animate-in">
           {results === null ? (
-            <p className="rounded-2xl bg-surface border border-line px-4 py-6 text-center text-sm text-muted">Searching…</p>
+            <p className="rounded-2xl bg-surface border border-line px-4 py-6 text-center text-sm text-muted">{t.people.search.searching}</p>
           ) : (
             <>
               {results.length > 0 && (
@@ -86,7 +88,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
               )}
               {directory.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5 px-1">Not on dispo yet</h3>
+                  <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5 px-1">{t.people.search.notOnDispo}</h3>
                   <ul className="rounded-2xl bg-surface border border-line divide-y divide-line overflow-hidden">
                     {directory.map((d) => (
                       <li key={d.sciper} className="flex items-center gap-3 px-4 py-3">
@@ -96,11 +98,11 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
                         <div className="min-w-0 flex-1">
                           <div className="font-medium truncate">{d.name}</div>
                           <div className="text-sm text-muted truncate">
-                            {[d.unit, d.role].filter(Boolean).join(" · ") || "EPFL"}
+                            {[d.unit, d.role].filter(Boolean).join(" · ") || t.common.epfl}
                             {d.profileUrl && (
                               <>
                                 {" · "}
-                                <ExternalLink href={d.profileUrl}>profile</ExternalLink>
+                                <ExternalLink href={d.profileUrl}>{t.people.search.profile}</ExternalLink>
                               </>
                             )}
                           </div>
@@ -113,7 +115,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder = "Search 
               )}
               {results.length === 0 && directory.length === 0 && (
                 <p className="rounded-2xl bg-surface border border-line px-4 py-6 text-center text-sm text-muted">
-                  {loading ? "Searching…" : term.length < 3 ? "Nobody on dispo matches. Type a bit more to search the EPFL directory." : "Nobody found on dispo or in the EPFL directory."}
+                  {loading ? t.people.search.searching : term.length < 3 ? t.people.search.typeMore : t.people.search.nobody}
                 </p>
               )}
             </>

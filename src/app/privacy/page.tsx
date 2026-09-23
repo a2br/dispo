@@ -1,59 +1,59 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { LOCALE_TAGS } from "@/i18n/config";
+import { getLocale, getT } from "@/i18n/server";
 import { sectionTitle } from "@/lib/ui";
 
-export const metadata: Metadata = { title: "Privacy" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).pages.privacy.title };
+}
 
 const CONTACT = "anatole.debierre@gmail.com";
+/** September 23, 2026. */
+const UPDATED = Date.UTC(2026, 8, 23);
 
-export default function Privacy() {
+export default async function Privacy() {
+  const t = (await getT()).pages.privacy;
+  const updated = new Intl.DateTimeFormat(LOCALE_TAGS[await getLocale()], { dateStyle: "long", timeZone: "UTC" }).format(UPDATED);
   return (
     <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-6 text-[15px] leading-relaxed">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Privacy</h1>
-        <p className="text-sm text-muted">Last updated September 22, 2026</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t.title}</h1>
+        <p className="text-sm text-muted">{t.updated(updated)}</p>
       </header>
 
-      <p>
-        dispo is a small student project that shows EPFL friends when each other are free. It is not affiliated with
-        EPFL. This page says what it stores and why.
-      </p>
+      <p>{t.intro}</p>
 
       <section className="space-y-2">
-        <h2 className={sectionTitle}>What dispo stores</h2>
+        <h2 className={sectionTitle}>{t.stores.title}</h2>
         <ul className="list-disc pl-5 space-y-1">
-          <li>From Google sign-in: your name and @epfl.ch email address. Nothing else from your Google account, not even your profile picture.</li>
-          <li>
-            The calendar link you paste from IS-Academia, encrypted (AES-256-GCM). It is never shown to anyone,
-            including you after you save it.
-          </li>
-          <li>The classes in that calendar (course, time, room, teacher), refreshed a few times a day.</li>
-          <li>What you set up in the app: connections, groups, pinned people, visibility settings and, if you add one, your phone number.</li>
+          <li>{t.stores.google}</li>
+          <li>{t.stores.link}</li>
+          <li>{t.stores.classes}</li>
+          <li>{t.stores.app}</li>
         </ul>
       </section>
 
       <section className="space-y-2">
-        <h2 className={sectionTitle}>Who sees it</h2>
+        <h2 className={sectionTitle}>{t.who.title}</h2>
         <p>
-          Other signed-in users see your schedule according to your setting on <Link href="/me" className="link">your profile</Link>:
-          everyone at EPFL (the default), free/busy for everyone with details only for your connections, or connections only. A public link, if you create one, shows free/busy only, without course
-          names or rooms. Your data is not sold, shared with third parties or used for ads.
+          {t.who.before}
+          <Link href="/me" className="link">{t.who.profile}</Link>
+          {t.who.after}
         </p>
       </section>
 
       <section className="space-y-2">
-        <h2 className={sectionTitle}>Where it lives</h2>
-        <p>
-          The app runs on Vercel and the database on Turso, both in the EU (Ireland). A session cookie keeps you signed
-          in; there are no analytics or tracking cookies.
-        </p>
+        <h2 className={sectionTitle}>{t.where.title}</h2>
+        <p>{t.where.text}</p>
       </section>
 
       <section className="space-y-2">
-        <h2 className={sectionTitle}>Deleting your data</h2>
+        <h2 className={sectionTitle}>{t.delete.title}</h2>
         <p>
-          Email <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a> from your EPFL address and your account and
-          everything linked to it will be deleted.
+          {t.delete.before}
+          <a href={`mailto:${CONTACT}`} className="link">{CONTACT}</a>
+          {t.delete.after}
         </p>
       </section>
     </main>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import type { PersonView } from "@/lib/present";
 import { button, chip, iconButton, input } from "@/lib/ui";
+import { useT } from "@/i18n/client";
 import { Avatar } from "./Avatar";
 
 type Person = { id: string; name: string };
@@ -16,6 +17,8 @@ export type PickerGroup = { id: string; name: string; memberIds: string[] };
  */
 export function PeoplePicker({ me, friends, selected, groups, week }: { me: Person; friends: Person[]; selected: Person[]; groups: PickerGroup[]; week: string | null }) {
   const router = useRouter();
+  const t = useT();
+  const tp = t.calendar.picker;
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [q, setQ] = useState("");
@@ -56,23 +59,23 @@ export function PeoplePicker({ me, friends, selected, groups, week }: { me: Pers
       <div className="flex flex-wrap items-center gap-1.5">
         <span className={chip("pl-1")}>
           <Avatar name={me.name} size={20} />
-          You
+          {t.calendar.you}
         </span>
         {selected.map((p) => (
           <span key={p.id} className={chip("pl-1 pr-0.5 animate-in")}>
             <Avatar name={p.name} size={20} />
             <span className="max-w-[9rem] truncate">{p.name.split(" ")[0]}</span>
-            <button onClick={() => toggle(p.id)} aria-label={`Remove ${p.name} from the view`} className={iconButton("quiet", "sm", "size-7")}>
+            <button onClick={() => toggle(p.id)} aria-label={tp.removeAria(p.name)} className={iconButton("quiet", "sm", "size-7")}>
               ×
             </button>
           </span>
         ))}
         <button onClick={() => setOpen((o) => !o)} aria-expanded={open} className={button(open ? "dark" : "add")}>
-          {open ? "Done" : "+ People"}
+          {open ? tp.done : tp.add}
         </button>
         {selected.length > 0 && !open && (
           <Link href={hrefFor([])} className={button("quiet")}>
-            Clear
+            {tp.clear}
           </Link>
         )}
       </div>
@@ -91,14 +94,14 @@ export function PeoplePicker({ me, friends, selected, groups, week }: { me: Pers
                   setResults([]);
                 }
               }}
-              placeholder="Search anyone by name"
+              placeholder={tp.search}
               className={input("md")}
             />
           </div>
 
           {term.length < 2 && groups.length > 0 && (
             <>
-              <div className="px-4 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">Groups</div>
+              <div className="px-4 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">{tp.groups}</div>
               <ul>
                 {groups.map((g) => (
                   <li key={g.id}>
@@ -107,7 +110,7 @@ export function PeoplePicker({ me, friends, selected, groups, week }: { me: Pers
                         ★
                       </span>
                       <span className="flex-1 min-w-0 truncate font-bold">{g.name}</span>
-                      <span className="text-xs text-muted">{g.memberIds.length + 1} people</span>
+                      <span className="text-xs text-muted">{tp.groupSize(g.memberIds.length + 1)}</span>
                     </Link>
                   </li>
                 ))}
@@ -115,9 +118,9 @@ export function PeoplePicker({ me, friends, selected, groups, week }: { me: Pers
             </>
           )}
 
-          <div className="px-4 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">{term.length >= 2 ? "Results" : "Your people"}</div>
+          <div className="px-4 pt-3 pb-1 text-xs font-bold text-muted uppercase tracking-wide">{term.length >= 2 ? tp.results : tp.yourPeople}</div>
           {rows.length === 0 ? (
-            <p className="px-4 pb-4 text-sm text-muted">{term.length >= 2 ? "No match." : "Nobody yet. Search anyone above."}</p>
+            <p className="px-4 pb-4 text-sm text-muted">{term.length >= 2 ? tp.noMatch : tp.nobody}</p>
           ) : (
             <ul className="pb-1">
               {rows.map((p) => {

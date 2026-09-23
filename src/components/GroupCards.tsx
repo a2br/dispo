@@ -4,25 +4,30 @@ import type { GroupWithMembers } from "@/lib/groups";
 import type { Interval } from "@/lib/groupcalc";
 import { fmtDayShort, fmtTime, dayStartOf } from "@/lib/time";
 import { Avatar } from "./Avatar";
+import { getLocale, getT } from "@/i18n/server";
+import type { Messages } from "@/i18n/messages";
+import type { Locale } from "@/i18n/config";
 
 type Next = (Interval & { now: boolean }) | null | undefined;
 
-function nextLabel(n: Next, now: number): { text: string; good: boolean } {
+function nextLabel(n: Next, now: number, t: Messages["now"]["groupCard"], locale: Locale): { text: string; good: boolean } {
   if (n === undefined) return { text: "", good: false };
-  if (n === null) return { text: "No common slot in the next 2 weeks", good: false };
-  if (n.now) return { text: `Everyone free now, until ${fmtTime(n.end)}`, good: true };
+  if (n === null) return { text: t.noSlot, good: false };
+  if (n.now) return { text: t.freeNow(fmtTime(n.end)), good: true };
   const today = dayStartOf(now);
   const day = dayStartOf(n.start);
-  const when = day === today ? "today" : day === today + 86_400_000 ? "tomorrow" : fmtDayShort(n.start);
-  return { text: `All free ${when} ${fmtTime(n.start)}–${fmtTime(n.end)}`, good: false };
+  const range = `${fmtTime(n.start)}–${fmtTime(n.end)}`;
+  const text = day === today ? t.freeToday(range) : day === today + 86_400_000 ? t.freeTomorrow(range) : t.freeOn(fmtDayShort(n.start, locale), range);
+  return { text, good: false };
 }
 
 /** Your groups, each with the next time everyone is free. Tapping one opens its page. */
-export function GroupCards({ groups, next, now, pinned, locked = false }: { groups: GroupWithMembers[]; next: Map<string, Next>; now: number; pinned?: Set<string>; locked?: boolean }) {
+export async function GroupCards({ groups, next, now, pinned, locked = false }: { groups: GroupWithMembers[]; next: Map<string, Next>; now: number; pinned?: Set<string>; locked?: boolean }) {
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
   return (
     <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
       {groups.map((g) => {
-        const label = nextLabel(next.get(g.id), now);
+        const label = nextLabel(next.get(g.id), now, t.now.groupCard, locale);
         const href = `/groups/${g.id}`; // tapping a group opens it, like tapping a chat
         return (
           <li key={g.id} className="min-w-0">
@@ -37,13 +42,13 @@ export function GroupCards({ groups, next, now, pinned, locked = false }: { grou
                 <span className="flex items-center gap-2">
                   <span className="font-bold truncate group-hover:text-accent-ink">{g.name}</span>
                   {pinned?.has(g.id) && (
-                    <span className="text-accent text-xs shrink-0" aria-label="Pinned" title="Pinned">
+                    <span className="text-accent text-xs shrink-0" aria-label={t.common.pinned} title={t.common.pinned}>
                       ★
                     </span>
                   )}
                 </span>
                 <span className={`block text-sm truncate ${label.good ? "text-free font-bold" : "text-muted"}`}>
-                  {g.members.length === 0 ? "Nobody has joined yet" : locked ? "Add your schedule to compare" : label.text}
+                  {g.members.length === 0 ? t.now.groupCard.empty : locked ? t.now.groupCard.locked : label.text}
                 </span>
               </span>
               <ChevronRight className="size-4 text-muted shrink-0" />

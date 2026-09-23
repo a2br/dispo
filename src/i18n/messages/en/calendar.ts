@@ -1,0 +1,63 @@
+const calendar = {
+  title: "Calendar",
+  /** People asked for in the view that you can't see. Ends with the colon before the reason. */
+  hidden: (n: number): string => (n === 1 ? "1 person isn’t shown:" : `${n} people aren’t shown:`),
+  hiddenPrivate: (n: number): string => (n === 1 ? "their schedule is private." : "their schedules are private."),
+  hiddenGiveToGet: { before: "add ", link: "your schedule", after: " to compare with people you’re not connected with." },
+  groupPage: "group page",
+  synced: (age: string) => `Synced ${age}`,
+  neverSynced: "Never synced",
+  refreshFailed: "last refresh failed",
+  manage: "manage in Settings",
+  empty: "Add your schedule to see your week here, then add friends to find a time together.",
+  addSchedule: "Add my schedule",
+  week: {
+    thisWeek: "This week",
+    nextWeek: "Next week",
+    lastWeek: "Last week",
+    /** `date` is the Monday, e.g. "21 Sept". */
+    weekOf: (date: string) => `Week of ${date}`,
+    today: "Today",
+    previousAria: "Previous week",
+    nextAria: "Next week",
+    /** On phones, put the week switcher on its own row: these labels are too long to share it with the title. */
+    ownRowOnPhones: false,
+  },
+  kinds: { lecture: "Lecture", exercise: "Exercises", lab: "Lab", project: "Project", other: "" },
+  /** Badge on the class happening right now. */
+  live: "now",
+  nothingScheduled: "Nothing scheduled",
+  maskedNote: "Free/busy only. Connect to see courses and rooms.",
+  /** Side-by-side group week. */
+  you: "You",
+  everyoneFree: "Everyone free",
+  needTwo: "Need at least two people with a schedule.",
+  noSlotWeek: "No common slot of 30 min or more left this week.",
+  noSlotToday: "No common slot left today.",
+  noSlotDay: "No common slot this day.",
+  allFree: "All free",
+  allColumn: "All",
+  /** `name` is null for yourself. */
+  allBut: (name: string | null) => `all but ${name ?? "you"}`,
+  everyoneFreeTitle: "everyone free",
+  busyTitle: (name: string | null, range: string) => `${name ?? "You"}: busy ${range}`,
+  noSchedule: "no schedule",
+  /** `names` is already a list ("Ana and Tom"). */
+  missing: (names: string, n: number) => `${names} ${n === 1 ? "has" : "have"} no schedule, so ${n === 1 ? "isn’t" : "aren’t"} counted.`,
+  /** Picking who's on the calendar. */
+  picker: {
+    removeAria: (name: string) => `Remove ${name} from the view`,
+    done: "Done",
+    add: "+ People",
+    clear: "Clear",
+    search: "Search anyone by name",
+    groups: "Groups",
+    groupSize: (n: number) => `${n} people`,
+    results: "Results",
+    yourPeople: "Your people",
+    noMatch: "No match.",
+    nobody: "Nobody yet. Search anyone above.",
+  },
+};
+
+export default calendar;

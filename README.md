@@ -39,6 +39,21 @@ IS-Academia timetables, which live behind Gaspar and have no shared calendar ser
 Mobile-first PWA (add to home screen). On tablets and laptops the bottom bar becomes a
 sidebar, friends get a timeline of their day, and pages spread into columns.
 
+## Languages
+
+English, French and German (Swiss conventions: `en-CH` / `fr-CH` / `de-CH`, 24-hour times, no "ß").
+Signed in, the language is saved on the account (`users.locale`, set at sign-up from the browser,
+changed in Me → Language) so it follows you across devices. Signed out, it's the `dispo_lang`
+cookie (the landing page's language links), else the browser's `Accept-Language`.
+Link previews (OG images and their titles) use the sender's language, since chat apps' crawlers
+have none of their own.
+
+- Messages live in `src/i18n/messages/{en,fr,de}/<namespace>.ts`. English is the source; French
+  and German are typed against it, so a missing or extra key fails `tsc`.
+- Server code: `await getT()` / `await getLocale()` from `@/i18n/server`. Client components:
+  `useT()` / `useLocale()` from `@/i18n/client`. Dates go through `src/lib/time.ts` helpers that
+  take a locale; course names come from IS-Academia and are never translated.
+
 ## Growth
 
 - Personal invite link `/i/<code>`: "Anatole invited you". Signing in through it connects you
@@ -91,7 +106,6 @@ on controls, a fade-up for new content, disabled under prefers-reduced-motion. L
 the app open in a new tab (`ExternalLink`).
 Week navigation is understated because most weeks repeat: "next" is a button, "previous" is
 faint, "Today" only appears off-week.
-
 ## Stack
 
 Next.js 16 (App Router, server actions), Tailwind 4, Drizzle + libsql (SQLite file

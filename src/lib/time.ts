@@ -1,4 +1,6 @@
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
+import { LOCALE_TAGS, type Locale } from "@/i18n/config";
+import type { Messages } from "@/i18n/messages";
 
 export const TZ = "Europe/Zurich";
 const DAY = 86_400_000;
@@ -47,19 +49,36 @@ export function fmtTime(ms: number): string {
   return formatInTimeZone(ms, TZ, "HH:mm");
 }
 
-export function fmtDayShort(ms: number): string {
-  return formatInTimeZone(ms, TZ, "EEE");
+const formats = new Map<string, Intl.DateTimeFormat>();
+function dtf(locale: Locale, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat {
+  const key = locale + JSON.stringify(opts);
+  let f = formats.get(key);
+  if (!f) formats.set(key, (f = new Intl.DateTimeFormat(LOCALE_TAGS[locale], { ...opts, timeZone: TZ })));
+  return f;
+}
+
+/** "Mon" / "lun." / "Mo". */
+export function fmtDayShort(ms: number, locale: Locale): string {
+  return dtf(locale, { weekday: "short" }).format(ms);
+}
+
+/** "Monday" / "lundi" / "Montag". */
+export function fmtDayLong(ms: number, locale: Locale): string {
+  return dtf(locale, { weekday: "long" }).format(ms);
 }
 
 export function fmtDayNum(ms: number): string {
   return formatInTimeZone(ms, TZ, "d");
 }
 
-export function fmtWeekLabel(weekStart: number): string {
-  const end = addDays(weekStart, 4);
-  const a = formatInTimeZone(weekStart, TZ, "d MMM");
-  const b = formatInTimeZone(end, TZ, "d MMM");
-  return `${a} – ${b}`;
+/** "21 Sept" / "21 sept." / "21. Sept.". */
+export function fmtDayMonth(ms: number, locale: Locale): string {
+  return dtf(locale, { day: "numeric", month: "short" }).format(ms);
+}
+
+/** Monday to Friday: "21 Sept – 25 Sept". */
+export function fmtWeekLabel(weekStart: number, locale: Locale): string {
+  return `${fmtDayMonth(weekStart, locale)} – ${fmtDayMonth(addDays(weekStart, 4), locale)}`;
 }
 
 /** Day index (Mon=0..Sun=6) and minutes since local midnight, in Zurich. */
@@ -79,15 +98,16 @@ export function todayIndexInWeek(weekStart: number, now = Date.now()): number | 
   return idx >= 0 && idx < 7 ? idx : null;
 }
 
-export function relativeAge(ms: number | null | undefined, now = Date.now()): string {
-  if (!ms) return "never";
+/** "just now", "5m ago"… in the words of `t.common.ago`. */
+export function relativeAge(ms: number | null | undefined, ago: Messages["common"]["ago"], now = Date.now()): string {
+  if (!ms) return ago.never;
   const s = Math.max(0, Math.round((now - ms) / 1000));
-  if (s < 60) return "just now";
+  if (s < 60) return ago.justNow;
   const m = Math.round(s / 60);
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return ago.minutes(m);
   const h = Math.round(m / 60);
-  if (h < 48) return `${h}h ago`;
-  return `${Math.round(h / 24)}d ago`;
+  if (h < 48) return ago.hours(h);
+  return ago.days(Math.round(h / 24));
 }
 
 /** Current time in ms. Server components call this instead of Date.now() so the purity lint stays quiet about a deliberate read. */

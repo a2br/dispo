@@ -19,7 +19,7 @@ export async function connectCalendar(userId: string, rawUrl: string): Promise<{
   const url = normalizeIcsUrl(rawUrl);
   const text = await fetchIcs(url);
   const parsed = parseIcs(text);
-  if (parsed.length === 0) throw new IcsError("The calendar is empty. Is the semester schedule published yet?");
+  if (parsed.length === 0) throw new IcsError("empty", "The calendar is empty. Is the semester schedule published yet?");
   await dbReady;
   const now = Date.now();
   await db
@@ -55,7 +55,9 @@ export async function refreshCalendar(userId: string): Promise<{ ok: boolean; co
     return { ok: true, count: parsed.length };
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    await db.update(schema.calendars).set({ lastFetchedAt: now, lastError: msg.slice(0, 500) }).where(eq(schema.calendars.userId, userId));
+    // A code, not text: Me shows it in the reader's language (see icsErrorText).
+    const lastError = e instanceof IcsError ? e.key : "failed";
+    await db.update(schema.calendars).set({ lastFetchedAt: now, lastError }).where(eq(schema.calendars.userId, userId));
     return { ok: false, count: cal.eventCount, error: msg };
   }
 }

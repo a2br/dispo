@@ -2,6 +2,7 @@
 
 import { useActionState, useRef, useState } from "react";
 import { saveCalendarLink, type FormState } from "@/app/actions";
+import { useT } from "@/i18n/client";
 import { button, input } from "@/lib/ui";
 
 /**
@@ -9,6 +10,7 @@ import { button, input } from "@/lib/ui";
  * so one tap reads it and submits. The text field stays as a fallback.
  */
 export function CalendarLinkForm({ stay = false, compact = false, next }: { stay?: boolean; compact?: boolean; next?: string }) {
+  const t = useT().setup.form;
   const [state, action, pending] = useActionState<FormState, FormData>(saveCalendarLink, undefined);
   const [value, setValue] = useState("");
   const [clipError, setClipError] = useState<string | null>(null);
@@ -19,14 +21,14 @@ export function CalendarLinkForm({ stay = false, compact = false, next }: { stay
     try {
       const text = (await navigator.clipboard.readText()).trim();
       if (!/^(https?|webcal):\/\//i.test(text)) {
-        setClipError("Your clipboard doesn’t hold a link. Copy it from IS-Academia first, or paste it below.");
+        setClipError(t.clipboardNoLink);
         return;
       }
       setValue(text);
       // let React commit the value before submitting
       requestAnimationFrame(() => form.current?.requestSubmit());
     } catch {
-      setClipError("Couldn’t read the clipboard. Paste the link below instead.");
+      setClipError(t.clipboardFailed);
     }
   }
 
@@ -36,7 +38,7 @@ export function CalendarLinkForm({ stay = false, compact = false, next }: { stay
       {next && <input type="hidden" name="next" value={next} />}
       {!compact && (
         <button type="button" onClick={pasteAndSubmit} disabled={pending} className={button("primary", "lg", "w-full")}>
-          {pending ? "Fetching your schedule…" : "Paste link & connect"}
+          {pending ? t.fetching : t.paste}
         </button>
       )}
       <div className="flex gap-2">
@@ -50,17 +52,17 @@ export function CalendarLinkForm({ stay = false, compact = false, next }: { stay
           spellCheck={false}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder={compact ? "New calendar link" : "…or paste it here"}
+          placeholder={compact ? t.placeholderReplace : t.placeholder}
           className={input("md", "flex-1 w-auto min-w-0 font-mono")}
         />
         <button type="submit" disabled={pending || !value} className={button(compact ? "primary" : "secondary", "md")}>
-          {compact ? "Replace" : "Connect"}
+          {compact ? t.replace : t.connect}
         </button>
       </div>
       {clipError && <p className="text-sm text-muted">{clipError}</p>}
       {state?.error && <p className="text-sm text-busy">{state.error}</p>}
       {state?.ok && <p className="text-sm text-free">{state.ok}</p>}
-      {pending && compact && <p className="text-sm text-muted">Fetching your schedule…</p>}
+      {pending && compact && <p className="text-sm text-muted">{t.fetching}</p>}
     </form>
   );
 }

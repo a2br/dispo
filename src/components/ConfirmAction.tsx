@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { button } from "@/lib/ui";
+import { useT } from "@/i18n/client";
 
 /**
  * A button that asks before doing something hard to undo. First tap reveals the question,
@@ -22,6 +23,7 @@ export function ConfirmAction({
   action: (formData: FormData) => Promise<void>;
   className: string;
 }) {
+  const t = useT();
   const [asking, setAsking] = useState(false);
   if (!asking) {
     return (
@@ -37,7 +39,7 @@ export function ConfirmAction({
       ))}
       <span className="text-sm text-muted">{question}</span>
       <button type="button" onClick={() => setAsking(false)} className={button("secondary")}>
-        Keep
+        {t.groups.keep}
       </button>
       <button type="submit" className={button("dangerSolid")}>
         {confirmLabel}

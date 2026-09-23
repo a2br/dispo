@@ -1,19 +1,25 @@
+import { isLocale } from "@/i18n/config";
+import { messages } from "@/i18n/messages";
 import { groupByInviteCode } from "@/lib/invites";
 import { ogSize, peopleCard, shareCard } from "@/lib/og";
 
-export const alt = "Join a group on dispo";
+// A static export, so English: a per-group alt would need generateImageMetadata, whose ids change the image URL.
+export const alt = messages.en.og.group.alt;
 export const size = ogSize;
 export const contentType = "image/png";
 
+// In the group creator's language: crawlers send none of their own.
 export default async function Image({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const inv = await groupByInviteCode(code);
-  if (!inv) return shareCard({ title: "Find a time together", subtitle: "See when everyone in your group is free." });
-  const n = inv.people.length;
+  if (!inv) return shareCard({ locale: "en", title: messages.en.og.group.deadTitle, subtitle: messages.en.og.group.deadSubtitle });
+  const locale = isLocale(inv.owner.locale) ? inv.owner.locale : "en";
+  const t = messages[locale].og.group;
   return peopleCard({
-    eyebrow: `${n} ${n === 1 ? "person" : "people"} so far`,
-    title: `Join “${inv.group.name}”`,
-    subtitle: "See when everyone’s free between classes. One tap, EPFL sign-in.",
+    locale,
+    eyebrow: t.soFar(inv.people.length),
+    title: t.join(inv.group.name),
+    subtitle: t.subtitle,
     people: inv.people.map((p) => p.name),
   });
 }

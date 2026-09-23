@@ -1,11 +1,13 @@
 import Link from "next/link";
+import { getT } from "@/i18n/server";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const t = (await getT()).pages.notFound;
   return (
     <main className="py-20 text-center space-y-3">
-      <h1 className="text-2xl font-bold">Nothing here</h1>
-      <p className="text-muted">This page doesn’t exist, or it isn’t visible to you.</p>
-      <Link href="/" className="inline-block link font-medium">Back home</Link>
+      <h1 className="text-2xl font-bold">{t.title}</h1>
+      <p className="text-muted">{t.text}</p>
+      <Link href="/" className="inline-block link font-medium">{t.home}</Link>
     </main>
   );
 }

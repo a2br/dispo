@@ -2,35 +2,37 @@ import type { Event, User } from "@/db/schema";
 import type { Status } from "./calendar";
 import { snapStart, type Block } from "./blocks";
 import { fmtTime } from "./time";
+import type { Messages } from "@/i18n/messages";
 
 export type StatusView = { state: "busy" | "free" | "unknown"; label: string; detail?: string };
 
-export function statusView(s: Status, access: "full" | "busy" | "none" = "busy"): StatusView {
+/** `t` is the reader's messages: labels are worded for whoever looks at the status. */
+export function statusView(s: Status, t: Messages, access: "full" | "busy" | "none" = "busy"): StatusView {
   switch (s.state) {
     case "unknown":
-      return { state: "unknown", label: "No schedule yet" };
+      return { state: "unknown", label: t.status.noSchedule };
     case "hidden":
-      return { state: "unknown", label: s.reason === "private" ? "Schedule is private" : "Add your schedule to see" };
+      return { state: "unknown", label: s.reason === "private" ? t.status.private : t.status.giveToGet };
     case "busy":
       return {
         state: "busy",
-        label: `Busy until ${fmtTime(s.until)}`,
+        label: t.status.busyUntil(fmtTime(s.until)),
         detail: access === "full" ? [s.event.course, s.event.rooms].filter(Boolean).join(" · ") : undefined,
       };
     case "free":
-      if (s.until == null) return { state: "free", label: "Free for the rest of the day" };
+      if (s.until == null) return { state: "free", label: t.status.freeRestOfDay };
       return {
         state: "free",
-        label: `Free until ${fmtTime(s.until)}`,
-        detail: access === "full" && s.next ? `Then ${s.next.course}` : undefined,
+        label: t.status.freeUntil(fmtTime(s.until)),
+        detail: access === "full" && s.next ? t.status.then(s.next.course) : undefined,
       };
   }
 }
 
 export type PersonView = { id: string; name: string; email: string; status: StatusView };
 
-export function publicPerson(u: User, s: Status): PersonView {
-  return { id: u.id, name: u.name, email: u.email, status: statusView(s, "busy") };
+export function publicPerson(u: User, s: Status, t: Messages): PersonView {
+  return { id: u.id, name: u.name, email: u.email, status: statusView(s, t, "busy") };
 }
 
 /** Event as sent to the client, reduced to free/busy when access is limited. */
@@ -52,8 +54,8 @@ export function eventView(e: Event): EventView {
 }
 
 /** Free/busy view: merged blocks only, so the number and length of individual sessions don't leak. */
-export function busyViews(blocks: Block[]): EventView[] {
-  return blocks.map((b, i) => ({ id: -(i + 1), start: b.start, end: b.end, title: "Busy", kind: "other", code: null, rooms: null, teacher: null, masked: true }));
+export function busyViews(blocks: Block[], t: Messages): EventView[] {
+  return blocks.map((b, i) => ({ id: -(i + 1), start: b.start, end: b.end, title: t.status.busy, kind: "other", code: null, rooms: null, teacher: null, masked: true }));
 }
 
 export function initials(name: string): string {

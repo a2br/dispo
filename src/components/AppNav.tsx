@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "./Avatar";
 import { Wordmark } from "./Wordmark";
+import { useT } from "@/i18n/client";
 
 const icon = "size-6 shrink-0";
 const IconNow = (
@@ -29,9 +30,10 @@ type Me = { id: string; name: string; email: string };
 
 export function AppNav({ me }: { me: Me }) {
   const path = usePathname();
+  const t = useT();
   const items = [
-    { href: "/", label: "Now", icon: IconNow, active: path === "/" || path.startsWith("/u/") || path.startsWith("/groups") || path.startsWith("/discover") || path.startsWith("/classmates") || path.startsWith("/course/") },
-    { href: "/calendar", label: "Calendar", icon: IconWeek, active: path.startsWith("/calendar") || path === "/group" },
+    { href: "/", label: t.nav.now, icon: IconNow, active: path === "/" || path.startsWith("/u/") || path.startsWith("/groups") || path.startsWith("/discover") || path.startsWith("/classmates") || path.startsWith("/course/") },
+    { href: "/calendar", label: t.nav.calendar, icon: IconWeek, active: path.startsWith("/calendar") || path === "/group" },
   ];
   const meActive = path.startsWith("/me") || path.startsWith("/setup");
 
@@ -70,7 +72,7 @@ export function AppNav({ me }: { me: Me }) {
           <Avatar name={me.name} size={32} />
           <span className="min-w-0 flex-1">
             <span className={`block text-sm font-bold truncate ${meActive ? "text-accent-ink" : ""}`}>{me.name}</span>
-            <span className="block text-xs text-muted truncate">Profile & settings</span>
+            <span className="block text-xs text-muted truncate">{t.nav.profile}</span>
           </span>
         </Link>
       </aside>
@@ -99,7 +101,7 @@ export function AppNav({ me }: { me: Me }) {
             >
               <span aria-hidden className={`absolute top-0 inset-x-6 h-0.5 bg-accent transition-transform duration-200 ${meActive ? "scale-x-100" : "scale-x-0"}`} />
               {IconMe}
-              Me
+              {t.nav.me}
             </Link>
           </li>
         </ul>

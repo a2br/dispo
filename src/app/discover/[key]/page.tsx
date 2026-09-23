@@ -11,6 +11,7 @@ import { BackButton } from "@/components/BackButton";
 import { ConnectButton } from "@/components/ConnectButton";
 import { CourseChip } from "@/components/CourseChips";
 import { PersonRow } from "@/components/PersonRow";
+import { getT } from "@/i18n/server";
 
 export async function generateMetadata({ params }: PageProps<"/discover/[key]">): Promise<Metadata> {
   const { key } = await params;
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: PageProps<"/discover/[key]">)
 export default async function DiscoverCoursePage({ params }: PageProps<"/discover/[key]">) {
   if (!features.classmates) notFound();
   const user = await requireUser();
+  const t = await getT();
   const { key } = await params;
   const res = await peopleInCourse(user, decodeURIComponent(key));
   if (!res) notFound();
@@ -36,19 +38,19 @@ export default async function DiscoverCoursePage({ params }: PageProps<"/discove
     <main className="mx-auto max-w-3xl py-6 md:py-10 space-y-5">
       <header className="space-y-2">
         <div className="flex items-center gap-3">
-          <BackButton href="/discover" label="Discover" />
+          <BackButton href="/discover" label={t.discover.title} />
           <CourseChip course={res.course} link={false} />
         </div>
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{res.course.name}</h1>
         <p className="text-sm text-muted">
-          {strangers.length === 0 ? "Nobody new here yet." : `${strangers.length} ${strangers.length === 1 ? "person" : "people"} you don’t know yet`}
-          {friendsHere > 0 && ` · ${friendsHere} of your people also take it`}
+          {strangers.length === 0 ? t.discover.course.nobody : t.discover.course.strangers(strangers.length)}
+          {friendsHere > 0 && ` · ${t.discover.course.friends(friendsHere)}`}
         </p>
       </header>
       {strangers.length > 0 && (
         <ul className="border border-line divide-y divide-line">
           {strangers.map((p) => (
-            <PersonRow key={p.id} person={publicPerson(p, statuses.get(p.id) ?? { state: "unknown" })} trailing={<ConnectButton userId={p.id} rel={relation(p.id)} />} />
+            <PersonRow key={p.id} person={publicPerson(p, statuses.get(p.id) ?? { state: "unknown" }, t)} trailing={<ConnectButton userId={p.id} rel={relation(p.id)} />} />
           ))}
         </ul>
       )}

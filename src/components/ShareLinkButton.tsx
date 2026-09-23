@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useT } from "@/i18n/client";
 import { button, type ButtonSize, type ButtonVariant } from "@/lib/ui";
 
 /**
@@ -11,13 +12,14 @@ import { button, type ButtonSize, type ButtonVariant } from "@/lib/ui";
  * clipboard gets the bare link: whoever copies it decides where it goes and what to say.
  */
 /** Messages are sent as a single line: no breaks between the words and the link. */
-export const oneLine = (s: string) => s.replace(/\s+/g, " ").trim();
+// Narrow no-break spaces stay: French puts them before ":" and "?" so the mark never starts a line.
+export const oneLine = (s: string) => s.replace(/[^\S\u202f]+/g, " ").trim();
 
 export function ShareLinkButton({
   url,
   getUrl,
   text,
-  label = "Share link",
+  label,
   variant = "primary",
   size = "sm",
   className,
@@ -30,6 +32,7 @@ export function ShareLinkButton({
   size?: ButtonSize;
   className?: string;
 }) {
+  const t = useT().pages.share;
   const [state, setState] = useState<"idle" | "busy" | "copied" | "error">("idle");
 
   async function share() {
@@ -51,14 +54,14 @@ export function ShareLinkButton({
       setState("copied");
       setTimeout(() => setState("idle"), 2000);
     } catch {
-      window.prompt("Copy this link", link);
+      window.prompt(t.prompt, link);
       setState("idle");
     }
   }
 
   return (
     <button type="button" onClick={share} disabled={state === "busy"} className={button(variant, size, className)}>
-      {state === "copied" ? "Link copied" : state === "error" ? "Try again" : label}
+      {state === "copied" ? t.copied : state === "error" ? t.retry : (label ?? t.label)}
     </button>
   );
 }

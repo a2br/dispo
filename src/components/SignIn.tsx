@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { devLoginEnabled, googleConfigured } from "@/lib/auth";
+import { getT } from "@/i18n/server";
 import { button, input } from "@/lib/ui";
 
 /** EPFL Google sign-in (+ local dev login). `next` brings the person back where they started, e.g. an invite link. */
-export function SignIn({ next, label = "Continue with EPFL Google" }: { next?: string; label?: string }) {
+export async function SignIn({ next, label }: { next?: string; label?: string }) {
+  const t = await getT();
   const google = googleConfigured();
   const dev = devLoginEnabled();
   const href = `/api/auth/google${next ? `?next=${encodeURIComponent(next)}` : ""}`;
@@ -11,9 +13,9 @@ export function SignIn({ next, label = "Continue with EPFL Google" }: { next?: s
     <div className="space-y-3">
       <a href={href} aria-disabled={!google} className={button(google ? "dark" : "secondary", "lg", `w-full gap-3 ${google ? "" : "pointer-events-none text-muted"}`)}>
         <GoogleG />
-        {label}
+        {label ?? t.auth.continueWithGoogle}
       </a>
-      {!google && <p className="text-xs text-muted text-center">Google sign-in isn’t configured on this server yet (set GOOGLE_CLIENT_ID / SECRET).</p>}
+      {!google && <p className="text-xs text-muted text-center">{t.auth.googleMissing}</p>}
       {dev && (
         <form action="/api/auth/dev" method="get" className="border border-dashed border-line p-3 space-y-2">
           <div className="text-xs font-bold text-muted uppercase tracking-wide">Dev login (local only)</div>
@@ -29,11 +31,12 @@ export function SignIn({ next, label = "Continue with EPFL Google" }: { next?: s
   );
 }
 
-export function Fineprint() {
+export async function Fineprint() {
+  const t = await getT();
   return (
     <p className="text-xs text-muted">
-      Only @epfl.ch accounts. Your calendar link is stored encrypted and never shown to anyone.{" "}
-      <Link href="/privacy" className="underline">Privacy</Link>
+      {t.auth.fineprint}{" "}
+      <Link href="/privacy" className="underline">{t.pages.privacy.title}</Link>
     </p>
   );
 }

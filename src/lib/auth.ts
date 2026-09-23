@@ -5,6 +5,7 @@ import { SignJWT, jwtVerify, createRemoteJWKSet } from "jose";
 import { cache } from "react";
 import { db, dbReady, schema } from "@/db";
 import type { User } from "@/db/schema";
+import type { Locale } from "@/i18n/config";
 
 const SESSION_COOKIE = "dispo_session";
 const SESSION_DAYS = 30;
@@ -77,7 +78,8 @@ export async function requireUser(): Promise<User> {
 
 // ---------- users ----------
 
-export async function upsertUserFromProfile(p: { email: string; name?: string | null }): Promise<User> {
+/** `locale` is the language the person signs in with; an account that already has one keeps it. */
+export async function upsertUserFromProfile(p: { email: string; name?: string | null; locale: Locale }): Promise<User> {
   await dbReady;
   const email = p.email.toLowerCase();
   const name = (p.name ?? "").trim() || email.split("@")[0].replace(/\./g, " ");
@@ -85,6 +87,7 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
   if (existing) {
     const patch: Partial<User> = {};
     if (p.name && p.name !== existing.name) patch.name = p.name;
+    if (!existing.locale) patch.locale = p.locale; // accounts from before languages
     if (Object.keys(patch).length) {
       await db.update(schema.users).set(patch).where(eq(schema.users.id, existing.id));
       return { ...existing, ...patch };
@@ -102,6 +105,7 @@ export async function upsertUserFromProfile(p: { email: string; name?: string | 
     inviteCode: null,
     shareCode: null,
     hideInviteCard: false,
+    locale: p.locale,
     createdAt: Date.now(),
   };
   await db.insert(schema.users).values(u);
@@ -154,15 +158,25 @@ export async function beginGoogleLogin(next?: string | null): Promise<string> {
   return `${GOOGLE_AUTH}?${params}`;
 }
 
-export class AuthError extends Error {}
+/** Sign-in failures the person can act on; the landing page shows `t.auth.errors[code]`. */
+export type AuthErrorCode = "cancelled" | "expired" | "failed" | "epfl";
 
-export async function finishGoogleLogin(code: string, state: string): Promise<{ user: User; next: string | null }> {
+export class AuthError extends Error {
+  constructor(
+    readonly code: AuthErrorCode,
+    message: string,
+  ) {
+    super(message);
+  }
+}
+
+export async function finishGoogleLogin(code: string, state: string, locale: Locale): Promise<{ user: User; next: string | null }> {
   const jar = await cookies();
   const raw = jar.get(OAUTH_COOKIE)?.value;
   jar.delete(OAUTH_COOKIE);
-  if (!raw) throw new AuthError("Login expired, try again.");
+  if (!raw) throw new AuthError("expired", "Login expired, try again.");
   const saved = JSON.parse(raw) as { state: string; nonce: string; verifier: string; next?: string | null };
-  if (saved.state !== state) throw new AuthError("State mismatch.");
+  if (saved.state !== state) throw new AuthError("failed", "State mismatch.");
 
   const res = await fetch(GOOGLE_TOKEN, {
     method: "POST",
@@ -176,24 +190,25 @@ export async function finishGoogleLogin(code: string, state: string): Promise<{ 
       code_verifier: saved.verifier,
     }),
   });
-  if (!res.ok) throw new AuthError("Google rejected the login code.");
+  if (!res.ok) throw new AuthError("failed", "Google rejected the login code.");
   const tok = (await res.json()) as { id_token?: string };
-  if (!tok.id_token) throw new AuthError("No identity token from Google.");
+  if (!tok.id_token) throw new AuthError("failed", "No identity token from Google.");
 
   const { payload } = await jwtVerify(tok.id_token, GOOGLE_JWKS, {
     issuer: ["https://accounts.google.com", "accounts.google.com"],
     audience: process.env.GOOGLE_CLIENT_ID!,
   });
-  if (payload.nonce !== saved.nonce) throw new AuthError("Nonce mismatch.");
+  if (payload.nonce !== saved.nonce) throw new AuthError("failed", "Nonce mismatch.");
   const email = String(payload.email ?? "");
   const verified = payload.email_verified === true;
   const hd = String(payload.hd ?? "");
   if (!verified || hd !== EPFL_DOMAIN || !isEpflEmail(email)) {
-    throw new AuthError("Please sign in with your @epfl.ch Google account.");
+    throw new AuthError("epfl", "Please sign in with your @epfl.ch Google account.");
   }
   const user = await upsertUserFromProfile({
     email,
     name: typeof payload.name === "string" ? payload.name : null,
+    locale,
   });
   return { user, next: safeNext(saved.next) };
 }

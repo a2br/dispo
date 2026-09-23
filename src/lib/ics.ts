@@ -1,5 +1,6 @@
 import ical from "node-ical";
 import type { EventKind } from "@/db/schema";
+import type { Messages } from "@/i18n/messages";
 
 export type ParsedEvent = {
   uid: string;
@@ -15,25 +16,53 @@ export type ParsedEvent = {
 const ALLOWED_HOSTS = [/(^|\.)epfl\.ch$/i, /(^|\.)pocketcampus\.org$/i];
 const MAX_BYTES = 5 * 1024 * 1024;
 
-export class IcsError extends Error {}
+/** What went wrong with a calendar link; each has a message in `t.setup.errors`. */
+export type IcsErrorCode = Exclude<keyof Messages["setup"]["errors"], "failed">;
+
+/** A problem worth telling the person about. `message` stays English, for logs. */
+export class IcsError extends Error {
+  constructor(
+    readonly code: IcsErrorCode,
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+  }
+
+  /** Stored in `calendars.last_error` and translated when shown: "empty", "http:404". */
+  get key(): string {
+    return this.status == null ? this.code : `${this.code}:${this.status}`;
+  }
+}
+
+/**
+ * An `IcsError.key` (or "failed") in the reader's words. Rows stored before errors had codes hold
+ * English text: that's shown as is.
+ */
+export function icsErrorText(key: string, errors: Messages["setup"]["errors"]): string {
+  const http = /^http:(\d+)$/.exec(key);
+  if (http) return errors.http(Number(http[1]));
+  if (key !== "http" && Object.hasOwn(errors, key)) return errors[key as Exclude<keyof typeof errors, "http">];
+  return key;
+}
 
 /** Accepts https:// or webcal:// links to an EPFL/PocketCampus host. Returns a normalized https URL. */
 export function normalizeIcsUrl(input: string): string {
   let s = input.trim();
-  if (!s) throw new IcsError("Paste the calendar link first.");
+  if (!s) throw new IcsError("emptyInput", "Paste the calendar link first.");
   if (/^webcal:\/\//i.test(s)) s = "https://" + s.slice("webcal://".length);
   if (/^http:\/\//i.test(s)) s = "https://" + s.slice("http://".length);
   let u: URL;
   try {
     u = new URL(s);
   } catch {
-    throw new IcsError("That doesn't look like a link.");
+    throw new IcsError("notALink", "That doesn't look like a link.");
   }
-  if (u.protocol !== "https:") throw new IcsError("Only https links are accepted.");
+  if (u.protocol !== "https:") throw new IcsError("notHttps", "Only https links are accepted.");
   if (!ALLOWED_HOSTS.some((re) => re.test(u.hostname))) {
-    throw new IcsError("Only links from campus.epfl.ch / epfl.ch are accepted.");
+    throw new IcsError("host", "Only links from campus.epfl.ch / epfl.ch are accepted.");
   }
-  if (u.port && u.port !== "443") throw new IcsError("Unexpected port in link.");
+  if (u.port && u.port !== "443") throw new IcsError("port", "Unexpected port in link.");
   u.port = "";
   return u.toString();
 }
@@ -45,13 +74,13 @@ export async function fetchIcs(url: string): Promise<string> {
     redirect: "manual",
     cache: "no-store",
   });
-  if (res.status >= 300 && res.status < 400) throw new IcsError("The link redirected somewhere else; paste the direct calendar link.");
-  if (!res.ok) throw new IcsError(`Calendar server answered ${res.status}.`);
+  if (res.status >= 300 && res.status < 400) throw new IcsError("redirect", "The link redirected somewhere else; paste the direct calendar link.");
+  if (!res.ok) throw new IcsError("http", `Calendar server answered ${res.status}.`, res.status);
   const len = Number(res.headers.get("content-length") ?? 0);
-  if (len > MAX_BYTES) throw new IcsError("Calendar file is too large.");
+  if (len > MAX_BYTES) throw new IcsError("tooLarge", "Calendar file is too large.");
   const text = await res.text();
-  if (text.length > MAX_BYTES) throw new IcsError("Calendar file is too large.");
-  if (!/BEGIN:VCALENDAR/.test(text)) throw new IcsError("That link didn't return a calendar.");
+  if (text.length > MAX_BYTES) throw new IcsError("tooLarge", "Calendar file is too large.");
+  if (!/BEGIN:VCALENDAR/.test(text)) throw new IcsError("notCalendar", "That link didn't return a calendar.");
   return text;
 }
 

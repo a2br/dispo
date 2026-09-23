@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PersonView } from "@/lib/present";
 import { input } from "@/lib/ui";
+import { useT } from "@/i18n/client";
 import { Avatar } from "./Avatar";
 
 type Person = { id: string; name: string };
@@ -13,6 +14,7 @@ type Person = { id: string; name: string };
  * Submits as repeated `member` fields.
  */
 export function PeopleAdder({ people, directIds, excludeIds = [] }: { people: Person[]; directIds: string[]; excludeIds?: string[] }) {
+  const t = useT().groups.adder;
   const [picked, setPicked] = useState<Person[]>([]);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<PersonView[]>([]);
@@ -54,13 +56,13 @@ export function PeopleAdder({ people, directIds, excludeIds = [] }: { people: Pe
               setResults([]);
             }
           }}
-          placeholder="Search anyone on dispo"
+          placeholder={t.search}
           autoComplete="off"
           className={input("md")}
         />
       </div>
       {shown.length === 0 ? (
-        <p className="px-4 py-4 text-sm text-muted">{term.length >= 2 ? "No match on dispo. Share the group’s link instead." : "Search for anyone above."}</p>
+        <p className="px-4 py-4 text-sm text-muted">{term.length >= 2 ? t.noMatch : t.hint}</p>
       ) : (
         <ul className="divide-y divide-line max-h-80 overflow-y-auto">
           {shown.map((p) => {
@@ -72,7 +74,7 @@ export function PeopleAdder({ people, directIds, excludeIds = [] }: { people: Pe
                   <Avatar name={p.name} size={32} />
                   <span className="flex-1 min-w-0">
                     <span className="block truncate font-bold">{p.name}</span>
-                    {on && !direct && <span className="block text-xs text-muted">Gets an invite to accept</span>}
+                    {on && !direct && <span className="block text-xs text-muted">{t.getsInvite}</span>}
                   </span>
                   <span className={`size-5 rounded-sm border grid place-items-center text-xs ${on ? "bg-foreground border-foreground text-background" : "border-line-strong"}`} aria-hidden>
                     {on ? "✓" : ""}

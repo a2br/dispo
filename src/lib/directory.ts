@@ -1,3 +1,5 @@
+import type { Locale } from "@/i18n/config";
+
 /**
  * EPFL people directory, via the public JSON endpoint behind search.epfl.ch.
  * No key, CORS open, returns only what people.epfl.ch already shows publicly.
@@ -10,7 +12,7 @@ export type DirectoryPerson = {
   fullName: string; // "Baptiste Bernard Bouilhol"
   email: string;
   unit: string | null; // "MT-MA1"
-  role: string | null; // "Student"
+  role: string | null; // "Student" / "Etudiant" (the directory speaks English and French)
   profileUrl: string | null;
 };
 
@@ -61,17 +63,18 @@ function score(p: DirectoryPerson, words: string[]): number {
   return s;
 }
 
-export async function searchDirectory(q: string, limit = 8): Promise<DirectoryPerson[]> {
+export async function searchDirectory(q: string, locale: Locale, limit = 8): Promise<DirectoryPerson[]> {
   const query = q.trim().replace(/\s+/g, " ");
   if (query.length < 3) return [];
   const key = norm(query);
-  const hit = cache.get(key);
+  const hl = locale === "fr" ? "fr" : "en"; // no German: roles stay English there
+  const hit = cache.get(`${hl}:${key}`);
   let people: DirectoryPerson[];
   if (hit && Date.now() - hit.at < TTL_MS) {
     people = hit.people;
   } else {
     try {
-      const res = await fetch(`${ENDPOINT}?${new URLSearchParams({ q: query, hl: "en" })}`, {
+      const res = await fetch(`${ENDPOINT}?${new URLSearchParams({ q: query, hl })}`, {
         headers: { accept: "application/json" },
         signal: AbortSignal.timeout(4000),
         cache: "no-store",
@@ -83,7 +86,7 @@ export async function searchDirectory(q: string, limit = 8): Promise<DirectoryPe
       return []; // directory down or slow: app search still works
     }
     if (cache.size > 500) cache.clear();
-    cache.set(key, { at: Date.now(), people });
+    cache.set(`${hl}:${key}`, { at: Date.now(), people });
   }
   const words = key.split(" ");
   return [...people]

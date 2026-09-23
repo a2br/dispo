@@ -9,25 +9,28 @@ import { destroySession, getUser, requireUser, safeNext } from "@/lib/auth";
 import { setStar } from "@/lib/stars";
 import { newCode } from "@/lib/codes";
 import { connectCalendar, disconnectCalendar, refreshCalendar } from "@/lib/calendar";
-import { IcsError } from "@/lib/ics";
+import { IcsError, icsErrorText } from "@/lib/ics";
 import { connectionBetween } from "@/lib/access";
+import { isLocale } from "@/i18n/config";
+import { getT, rememberLocale } from "@/i18n/server";
 import { addMembers, answerInvite, cancelInvite, createGroup, deleteGroup, leaveGroup, renameGroup } from "@/lib/groups";
 
 export type FormState = { error?: string; ok?: string } | undefined;
 
 export async function saveCalendarLink(_prev: FormState, formData: FormData): Promise<FormState> {
   const user = await requireUser();
+  const t = await getT();
   const url = String(formData.get("url") ?? "");
   let count: number;
   try {
     ({ count } = await connectCalendar(user.id, url));
   } catch (e) {
-    if (e instanceof IcsError) return { error: e.message };
+    if (e instanceof IcsError) return { error: icsErrorText(e.key, t.setup.errors) };
     console.error("connectCalendar failed", e);
-    return { error: "Couldn't fetch that calendar. Check the link and try again." };
+    return { error: t.setup.form.failed };
   }
   revalidatePath("/", "layout");
-  if (formData.get("then") === "stay") return { ok: `Loaded ${count} sessions.` };
+  if (formData.get("then") === "stay") return { ok: t.setup.form.loaded(count) };
   // redirect() works by throwing, so it must stay outside the try/catch above.
   redirect(safeNext(String(formData.get("next") ?? "")) ?? "/");
 }
@@ -65,13 +68,14 @@ export type PhoneState = { error?: string; ok?: string } | undefined;
 /** Optional phone number for classmates and connections. Empty clears it. */
 export async function setPhone(_prev: PhoneState, formData: FormData): Promise<PhoneState> {
   const user = await requireUser();
+  const t = await getT();
   const raw = String(formData.get("phone") ?? "").trim();
   const phone = raw.replace(/[^\d+ ]/g, "").replace(/\s+/g, " ").trim();
-  if (phone && !/^\+?[\d ]{7,20}$/.test(phone)) return { error: "That doesn’t look like a phone number." };
+  if (phone && !/^\+?[\d ]{7,20}$/.test(phone)) return { error: t.me.phone.invalid };
   await dbReady;
   await db.update(schema.users).set({ phone: phone || null }).where(eq(schema.users.id, user.id));
   revalidatePath("/", "layout");
-  return { ok: phone ? "Saved" : "Removed" };
+  return { ok: phone ? t.me.phone.saved : t.me.phone.removed };
 }
 
 /** Turn the public view-only link on (fresh code, which also revokes any old link) or off. */
@@ -80,6 +84,19 @@ export async function setPublicLink(formData: FormData): Promise<void> {
   const on = formData.get("on") === "1";
   await dbReady;
   await db.update(schema.users).set({ shareCode: on ? newCode(10) : null }).where(eq(schema.users.id, user.id));
+  revalidatePath("/", "layout");
+}
+
+/** Pick a language: saved on the account when signed in, and on this browser either way. */
+export async function setLanguage(formData: FormData): Promise<void> {
+  const locale = formData.get("locale");
+  if (!isLocale(locale)) return;
+  await rememberLocale(locale);
+  const user = await getUser();
+  if (user) {
+    await dbReady;
+    await db.update(schema.users).set({ locale }).where(eq(schema.users.id, user.id));
+  }
   revalidatePath("/", "layout");
 }
 

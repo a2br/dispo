@@ -6,6 +6,7 @@ import { searchUsers } from "@/lib/calendar";
 import { searchDirectory } from "@/lib/directory";
 import { publicPerson } from "@/lib/present";
 import { visibleStatuses } from "@/lib/access";
+import { getLocale, getT } from "@/i18n/server";
 
 export async function GET(req: NextRequest) {
   const user = await getUser();
@@ -14,7 +15,8 @@ export async function GET(req: NextRequest) {
   const includeDirectory = req.nextUrl.searchParams.get("directory") !== "0";
   if (q.trim().length < 2) return Response.json({ people: [], directory: [] });
 
-  const [found, dir] = await Promise.all([searchUsers(user, q), includeDirectory ? searchDirectory(q) : Promise.resolve([])]);
+  const [t, locale] = await Promise.all([getT(), getLocale()]);
+  const [found, dir] = await Promise.all([searchUsers(user, q), includeDirectory ? searchDirectory(q, locale) : Promise.resolve([])]);
   // Free/busy only where this viewer may see it (their settings, and give-to-get).
   const statuses = await visibleStatuses(user, found);
 
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
   const skip = new Set([user.email, ...registered.map((r) => r.email)]);
 
   return Response.json({
-    people: found.map((u) => publicPerson(u, statuses.get(u.id) ?? { state: "unknown" })),
+    people: found.map((u) => publicPerson(u, statuses.get(u.id) ?? { state: "unknown" }, t)),
     directory: dir.filter((d) => !skip.has(d.email)),
   });
 }

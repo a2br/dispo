@@ -23,7 +23,7 @@ async function main() {
   await dbReady;
   const me = (await db.select().from(schema.users).where(eq(schema.users.email, "anatole.debierre@epfl.ch")))[0];
   for (const p of people) {
-    const u = await upsertUserFromProfile({ email: p.email, name: p.name });
+    const u = await upsertUserFromProfile({ email: p.email, name: p.name, locale: "en" });
     await db.update(schema.users).set({ visibility: p.visibility }).where(eq(schema.users.id, u.id));
     if (!p.noCalendar) {
       const { count } = await connectCalendar(u.id, ICS!);

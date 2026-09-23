@@ -6,12 +6,17 @@ import { button, input, sectionTitle } from "@/lib/ui";
 import { createGroupAction } from "@/app/actions";
 import { BackButton } from "@/components/BackButton";
 import { PeopleAdder } from "@/components/PeopleAdder";
+import { getT } from "@/i18n/server";
 
-export const metadata: Metadata = { title: "Create group" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT()).groups.create.title };
+}
 
 /** The one way to make a group, always on purpose: name it, pick people (optional), get its invite link. */
 export default async function CreateGroupPage() {
   const user = await requireUser();
+  const t = await getT();
+  const tc = t.groups.create;
   const [conns, stars] = await Promise.all([connectionsOf(user.id), starsOf(user.id)]);
   const people = [...conns.accepted].sort((a, b) => Number(stars.users.has(b.id)) - Number(stars.users.has(a.id)) || a.name.localeCompare(b.name));
 
@@ -19,29 +24,29 @@ export default async function CreateGroupPage() {
     <main className="mx-auto max-w-xl py-6 md:py-10">
       <form action={createGroupAction} className="space-y-6">
         <header className="flex items-center gap-3">
-          <BackButton href="/" label="Now" />
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Create group</h1>
+          <BackButton href="/" label={t.nav.now} />
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{tc.title}</h1>
         </header>
-        <p className="text-muted">Like a group chat: everyone in it sees it and can find a time together. You’ll get a link to invite anyone else.</p>
+        <p className="text-muted">{tc.intro}</p>
 
         <label className="block space-y-1.5">
-          <span className={sectionTitle}>Name</span>
-          <input name="name" required maxLength={60} placeholder="e.g. ADA project, Sat climbing" autoComplete="off" data-1p-ignore data-lpignore="true" className={input("md")} autoFocus />
+          <span className={sectionTitle}>{tc.name}</span>
+          <input name="name" required maxLength={60} placeholder={tc.namePlaceholder} autoComplete="off" data-1p-ignore data-lpignore="true" className={input("md")} autoFocus />
         </label>
 
         <section className="space-y-2">
           <h2 className={sectionTitle}>
-            Add people <span className="normal-case font-normal tracking-normal">· optional</span>
+            {tc.addPeople} <span className="normal-case font-normal tracking-normal">· {tc.optional}</span>
           </h2>
           <PeopleAdder people={people.map((u) => ({ id: u.id, name: u.name }))} directIds={people.map((u) => u.id)} excludeIds={[user.id]} />
-          <p className="text-xs text-muted">Your connections are added right away. Anyone else gets an invite they can accept or decline.</p>
+          <p className="text-xs text-muted">{tc.hint}</p>
         </section>
 
         <div className="space-y-2">
           <button type="submit" className={button("primary", "lg", "w-full")}>
-            Create group
+            {tc.submit}
           </button>
-          <p className="text-sm text-muted text-center">Everyone you add will see this group.</p>
+          <p className="text-sm text-muted text-center">{tc.everyoneSees}</p>
         </div>
       </form>
     </main>

@@ -1,3 +1,4 @@
+import type { Locale } from "@/i18n/config";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export type Visibility = "everyone" | "connections" | "private";
@@ -20,6 +21,8 @@ export const users = sqliteTable(
     shareCode: text("share_code"),
     /** Dismissed the "Invite friends" card on Now (kept on the account so it stays hidden on every device). */
     hideInviteCard: integer("hide_invite_card", { mode: "boolean" }).notNull().default(false),
+    /** UI language (en / fr / de). Set at sign-up from the browser, changed in Me. */
+    locale: text("locale").$type<Locale>(),
     createdAt: integer("created_at").notNull(),
   },
   (t) => [uniqueIndex("users_email_idx").on(t.email)],

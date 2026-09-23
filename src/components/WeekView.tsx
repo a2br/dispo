@@ -4,14 +4,7 @@ import { useState } from "react";
 import type { EventView } from "@/lib/present";
 import { toneFor } from "@/lib/present";
 import { addDays, fmtDayNum, fmtDayShort, fmtTime, localParts } from "@/lib/time";
-
-const KIND_LABEL: Record<EventView["kind"], string> = {
-  lecture: "Lecture",
-  exercise: "Exercises",
-  lab: "Lab",
-  project: "Project",
-  other: "",
-};
+import { useLocale, useT } from "@/i18n/client";
 
 type Props = {
   weekStart: number;
@@ -58,12 +51,13 @@ function titleFor(e: EventView): string {
 
 /** Block text; `.ev` sizing in globals.css picks one line, title + room, or a two-line title. */
 function BlockBody({ e, live }: { e: EventView; live?: boolean }) {
-  const sub = e.masked ? "" : [KIND_LABEL[e.kind], e.rooms].filter(Boolean).join(" · ");
+  const t = useT();
+  const sub = e.masked ? "" : [t.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
   return (
     <div className="ev-body">
       <div className="ev-head">
         <span className="ev-title">{e.title}</span>
-        {live && <span className="text-[10px] font-bold uppercase tracking-wide text-busy shrink-0">now</span>}
+        {live && <span className="text-[10px] font-bold uppercase tracking-wide text-busy shrink-0">{t.calendar.live}</span>}
       </div>
       {sub && <div className="ev-sub">{sub}</div>}
     </div>
@@ -76,6 +70,8 @@ function BlockBody({ e, live }: { e: EventView; live?: boolean }) {
  * scrolling. Blocks carry no times; the hour axis already shows them.
  */
 export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) {
+  const t = useT();
+  const locale = useLocale();
   const dayCount = events.some((e) => localParts(e.start).day >= 5) ? 7 : 5;
   const [selected, setSelected] = useState(todayIndex != null && todayIndex < dayCount ? todayIndex : 0);
   const byDay: EventView[][] = Array.from({ length: dayCount }, () => []);
@@ -114,7 +110,7 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
                 onClick={() => setSelected(i)}
                 className={`rounded-2xl py-1.5 flex flex-col items-center gap-0.5 border ${isSel ? "bg-foreground text-background border-foreground" : "bg-surface border-line"}`}
               >
-                <span className={`text-[11px] uppercase tracking-wide ${isSel ? "opacity-80" : "text-muted"}`}>{fmtDayShort(dayMs)}</span>
+                <span className={`text-[11px] uppercase tracking-wide ${isSel ? "opacity-80" : "text-muted"}`}>{fmtDayShort(dayMs, locale)}</span>
                 <span className={`text-base font-bold leading-none ${isToday && !isSel ? "text-accent-ink" : ""}`}>{fmtDayNum(dayMs)}</span>
                 <span className="flex gap-0.5 h-1.5">
                   {list.slice(0, 4).map((e) => (
@@ -144,7 +140,7 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
             const dayMs = addDays(weekStart, i);
             return (
               <div key={i} className={`text-center py-2 text-sm border-b border-l border-line ${i === todayIndex ? "text-accent-ink font-bold" : "text-muted"}`}>
-                {fmtDayShort(dayMs)} {fmtDayNum(dayMs)}
+                {fmtDayShort(dayMs, locale)} {fmtDayNum(dayMs)}
               </div>
             );
           })}
@@ -190,13 +186,14 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
           )}
         </div>
       </div>
-      {masked && <p className="shrink-0 mt-2 text-xs text-muted text-center">Free/busy only. Connect to see courses and rooms.</p>}
+      {masked && <p className="shrink-0 mt-2 text-xs text-muted text-center">{t.calendar.maskedNote}</p>}
     </section>
   );
 }
 
 /** One day as a timeline that fills the remaining height: blocks sit at their real times. */
 function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: EventView[]; now: number; minH: number; maxH: number; isToday: boolean; isPast: boolean }) {
+  const t = useT();
   const hours = maxH - minH;
   const slots = hours * 4;
   const rowOfMinutes = (m: number) => Math.round((m - minH * 60) / 15) + 1;
@@ -238,7 +235,7 @@ function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: Eve
       </div>
       {pastFrac > 0 && <div className="pointer-events-none absolute top-0 right-0 left-[2.75rem] bg-foreground/[0.04]" style={{ height: `${pastFrac * 100}%` }} />}
       {isToday && nowFrac >= 0 && nowFrac <= 1 && <div className="pointer-events-none absolute right-0 left-[2.75rem] h-0.5 bg-accent" style={{ top: `${nowFrac * 100}%` }} />}
-      {events.length === 0 && <div className="pointer-events-none absolute inset-0 grid place-items-center text-sm text-muted">Nothing scheduled</div>}
+      {events.length === 0 && <div className="pointer-events-none absolute inset-0 grid place-items-center text-sm text-muted">{t.calendar.nothingScheduled}</div>}
     </div>
   );
 }

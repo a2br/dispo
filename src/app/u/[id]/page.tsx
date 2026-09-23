@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { after } from "next/server";
+import { getT } from "@/i18n/server";
 import { requireUser } from "@/lib/auth";
 import { accessFor, hasSchedule, relationTo } from "@/lib/access";
 import { STALE_MS, eventsBetween, getCalendar, getUserById, refreshCalendar, statusFrom } from "@/lib/calendar";
@@ -24,11 +25,12 @@ import { button } from "@/lib/ui";
 export async function generateMetadata({ params }: PageProps<"/u/[id]">): Promise<Metadata> {
   const { id } = await params;
   const u = await getUserById(id);
-  return { title: u ? u.name : "Person" };
+  return { title: u ? u.name : (await getT()).share.person.title };
 }
 
 export default async function PersonPage({ params, searchParams }: PageProps<"/u/[id]">) {
   const viewer = await requireUser();
+  const t = await getT();
   const { id } = await params;
   const sp = await searchParams;
   if (id === viewer.id) redirect(`/calendar${typeof sp.w === "string" ? `?w=${sp.w}` : ""}`);
@@ -47,19 +49,17 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
           <Avatar name={target.name} size={44} />
           <div className="flex-1 min-w-[9rem]">
             <h1 className="text-xl font-bold tracking-tight truncate">{target.name}</h1>
-            <p className="text-sm text-muted">{needsSchedule ? "Add your schedule to see" : "Schedule is private"}</p>
+            <p className="text-sm text-muted">{needsSchedule ? t.share.person.addToSee : t.status.private}</p>
           </div>
           <ConnectButton userId={target.id} rel={rel} />
         </header>
         <div className="border border-line px-4 py-6 text-center space-y-3">
           <p className="text-sm text-muted">
-            {needsSchedule
-              ? "Schedules work both ways: add yours to see people you’re not connected with yet. Your connections can always see each other."
-              : `Only people ${target.name.split(" ")[0]} has accepted can see their schedule. Send a request to connect.`}
+            {needsSchedule ? t.share.person.worksBothWays : t.share.person.onlyAccepted(target.name.split(" ")[0])}
           </p>
           {needsSchedule && (
             <Link href={`/setup?next=${encodeURIComponent(`/u/${target.id}`)}`} className={button("primary")}>
-              Add my schedule
+              {t.share.person.addMine}
             </Link>
           )}
         </div>
@@ -96,13 +96,13 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
         <Avatar name={target.name} size={44} />
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold tracking-tight truncate">{target.name}</h1>
-          <StatusPill status={statusView(status, access)} />
+          <StatusPill status={statusView(status, t, access)} />
           {showPhone && target.phone && <ReachLinks phone={target.phone} />}
         </div>
         <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:ml-auto">
           {cal && (
-            <Link href={`/calendar?with=${target.id}`} className={button("secondary")} title={`Find a time with ${first}`}>
-              Compare
+            <Link href={`/calendar?with=${target.id}`} className={button("secondary")} title={t.share.findTime(first)}>
+              {t.share.person.compare}
             </Link>
           )}
           <ConnectButton userId={target.id} rel={rel} />
@@ -113,9 +113,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
       {overlap && overlap.mine.length > 0 && (
         <div className="shrink-0 border border-line px-3 py-2 text-sm flex flex-wrap items-center gap-x-2 gap-y-1">
           <span className="font-bold">
-            {overlap.shared.length === 0
-              ? "No courses in common with you."
-              : `Shares ${overlap.shared.length} of your ${overlap.mine.length} course${overlap.mine.length === 1 ? "" : "s"}`}
+            {overlap.shared.length === 0 ? t.share.person.noCommon : t.share.person.sharesCourses(overlap.shared.length, overlap.mine.length)}
           </span>
           {overlap.shared.length > 0 && <CourseChips courses={overlap.shared} />}
         </div>
@@ -123,7 +121,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
 
       {!cal ? (
         <div className="border border-line px-4 py-10 text-center">
-          <p className="text-muted">{first} hasn’t added a schedule yet.</p>
+          <p className="text-muted">{t.share.noSchedule(first)}</p>
         </div>
       ) : (
         <>
@@ -132,14 +130,14 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
           </div>
           <WeekView
             weekStart={weekStart}
-            events={access === "full" ? weekEvents.map(eventView) : busyViews(mergeBlocks(weekEvents))}
+            events={access === "full" ? weekEvents.map((e) => eventView(e)) : busyViews(mergeBlocks(weekEvents), t)}
             todayIndex={todayIndexInWeek(weekStart, now)}
             now={now}
             masked={access === "busy"}
           />
           <p className="shrink-0 text-[11px] text-muted text-center">
-            Synced {relativeAge(cal.lastOkAt, now)}
-            {cal.lastError ? " · last refresh failed" : ""}
+            {t.share.person.synced(relativeAge(cal.lastOkAt, t.common.ago, now))}
+            {cal.lastError ? ` · ${t.share.person.refreshFailed}` : ""}
           </p>
         </>
       )}
