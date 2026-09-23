@@ -10,7 +10,7 @@ import { mergeBlocks } from "@/lib/blocks";
 import { sharedCourses } from "@/lib/classmates";
 import { features } from "@/lib/features";
 import { CourseChips } from "@/components/CourseChips";
-import { addDays, dayStartOf, isoDate, relativeAge, todayIndexInWeek, weekStartFromParam, weekStartOf, nowMs } from "@/lib/time";
+import { addDays, dayStartOf, relativeAge, todayIndexInWeek, weekParam, weekStartFromParam, weekStartOf, nowMs } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
 import { ConnectButton } from "@/components/ConnectButton";
 import { StatusPill } from "@/components/StatusPill";
@@ -128,7 +128,7 @@ export default async function PersonPage({ params, searchParams }: PageProps<"/u
       ) : (
         <>
           <div className="flex justify-end shrink-0">
-            <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={(w) => `/u/${target.id}?w=${isoDate(w)}`} />
+            <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={(w) => `/u/${target.id}?w=${weekParam(w)}`} />
           </div>
           <WeekView
             weekStart={weekStart}

@@ -11,9 +11,27 @@ export function weekStartOf(at: Date | number): number {
   return fromZonedTime(monday, TZ).getTime();
 }
 
-/** Parse a `YYYY-MM-DD` query value into a Zurich week start; falls back to the current week. */
+/**
+ * `?w=` value for a week: its ISO 8601 week, e.g. `2026-W39`. One value per week and one week per
+ * value, so each week has a single URL (chat apps cache link previews per URL). ISO weeks start on
+ * Monday like ours; the year is the ISO week-year, so Mon 29 Dec 2025 is `2026-W01`.
+ */
+export function weekParam(weekStart: number): string {
+  return formatInTimeZone(weekStart, TZ, "RRRR-'W'II");
+}
+
+/**
+ * Parse a `?w=` value into a Zurich week start: `YYYY-Www`, or a `YYYY-MM-DD` date inside the week
+ * (links shared before ISO weeks). Anything else, including week 53 of a 52-week year, falls back
+ * to the current week.
+ */
 export function weekStartFromParam(w: string | undefined): number {
-  if (w && /^\d{4}-\d{2}-\d{2}$/.test(w)) {
+  const iso = w?.match(/^(\d{4})-W(\d{2})$/i);
+  if (iso) {
+    // 4 January is always in week 1; step from its Monday.
+    const start = addDays(weekStartOf(fromZonedTime(`${iso[1]}-01-04T12:00:00`, TZ)), (Number(iso[2]) - 1) * 7);
+    if (weekParam(start) === `${iso[1]}-W${iso[2]}`) return start;
+  } else if (w && /^\d{4}-\d{2}-\d{2}$/.test(w)) {
     const d = fromZonedTime(`${w}T12:00:00`, TZ);
     if (!Number.isNaN(d.getTime())) return weekStartOf(d);
   }
@@ -23,10 +41,6 @@ export function weekStartFromParam(w: string | undefined): number {
 export function addDays(ms: number, days: number): number {
   const z = toZonedTime(ms, TZ);
   return fromZonedTime(new Date(z.getFullYear(), z.getMonth(), z.getDate() + days, z.getHours(), z.getMinutes()), TZ).getTime();
-}
-
-export function isoDate(ms: number): string {
-  return formatInTimeZone(ms, TZ, "yyyy-MM-dd");
 }
 
 export function fmtTime(ms: number): string {

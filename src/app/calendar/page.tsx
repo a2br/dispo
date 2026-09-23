@@ -10,7 +10,7 @@ import { mergeBlocks } from "@/lib/blocks";
 import { getGroup, listGroups, shareAGroup } from "@/lib/groups";
 import type { MemberData } from "@/lib/groupcalc";
 import { eventView, statusView } from "@/lib/present";
-import { addDays, dayStartOf, isoDate, nowMs, relativeAge, todayIndexInWeek, weekStartFromParam, weekStartOf } from "@/lib/time";
+import { addDays, dayStartOf, nowMs, relativeAge, todayIndexInWeek, weekParam, weekStartFromParam, weekStartOf } from "@/lib/time";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { GroupWeek } from "@/components/GroupWeek";
 import { StatusPill } from "@/components/StatusPill";
@@ -29,7 +29,7 @@ const MAX_MEMBERS = 12;
 export default async function CalendarPage({ searchParams }: PageProps<"/calendar">) {
   const viewer = await requireUser();
   const sp = await searchParams;
-  const weekParam = typeof sp.w === "string" ? sp.w : undefined;
+  const w = typeof sp.w === "string" ? sp.w : undefined;
   const requested = typeof sp.with === "string" ? sp.with.split(",").map((s) => s.trim()).filter(Boolean) : [];
 
   // Old links carried a group id; the view is now described only by who is in it.
@@ -38,10 +38,10 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
     const params = new URLSearchParams();
     const others = legacy?.people.filter((p) => p.id !== viewer.id) ?? [];
     if (others.length) params.set("with", others.map((p) => p.id).join(","));
-    if (weekParam) params.set("w", weekParam);
+    if (w) params.set("w", w);
     redirect(`/calendar${params.size ? `?${params}` : ""}`);
   }
-  const weekStart = weekStartFromParam(weekParam);
+  const weekStart = weekStartFromParam(w);
   const weekEnd = addDays(weekStart, 7);
   const now = nowMs();
 
@@ -80,7 +80,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   const match = selected.length
     ? groups.find((g) => g.members.length === selected.length && g.members.every((m) => selected.some((s) => s.id === m.id)))
     : undefined;
-  const weekHref = (w: number) => `/calendar?${new URLSearchParams({ ...baseParams, w: isoDate(w) })}`;
+  const weekHref = (ws: number) => `/calendar?${new URLSearchParams({ ...baseParams, w: weekParam(ws) })}`;
   const todayIdx = todayIndexInWeek(weekStart, now);
 
   // Solo view: your own week with full details.
@@ -106,7 +106,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
       </header>
 
       <div className="shrink-0 space-y-2">
-        <PeoplePicker me={{ id: viewer.id, name: viewer.name }} friends={friends} selected={selected} groups={pickerGroups} week={weekParam ?? null} />
+        <PeoplePicker me={{ id: viewer.id, name: viewer.name }} friends={friends} selected={selected} groups={pickerGroups} week={w ? weekParam(weekStart) : null} />
         {hiddenCount > 0 && (
           <p className="text-sm text-muted">
             {hiddenCount === 1 ? "1 person isn’t shown" : `${hiddenCount} people aren’t shown`}:{" "}

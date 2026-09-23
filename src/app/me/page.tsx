@@ -5,7 +5,7 @@ import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { eventsBetween, getCalendar, statusFrom } from "@/lib/calendar";
 import { statusView } from "@/lib/present";
 import { StatusPill } from "@/components/StatusPill";
-import { addDays, dayStartOf, isoDate, localParts, relativeAge, nowMs, weekStartOf } from "@/lib/time";
+import { addDays, dayStartOf, localParts, relativeAge, nowMs, weekParam, weekStartOf } from "@/lib/time";
 import { Avatar } from "@/components/Avatar";
 import { DiscoverToggle } from "@/components/DiscoverToggle";
 import { PhoneForm } from "@/components/PhoneForm";
@@ -90,7 +90,7 @@ export default async function MePage() {
           </p>
           {user.shareCode ? (
             <div className="flex flex-wrap items-center gap-2">
-              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}?w=${isoDate(shareWeek)}`} text={weekend ? "When I’m free next week:" : "When I’m free this week:"} label="Share link" variant="primary" />
+              <ShareLinkButton url={`${appUrl()}/s/${user.shareCode}?w=${weekParam(shareWeek)}`} text={weekend ? "When I’m free next week:" : "When I’m free this week:"} label="Share link" variant="primary" />
               <a href={`/s/${user.shareCode}`} target="_blank" rel="noopener" className={button("secondary")}>
                 Preview ↗
               </a>

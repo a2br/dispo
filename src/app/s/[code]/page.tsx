@@ -7,7 +7,7 @@ import { STALE_MS, eventsBetween, getCalendar, refreshCalendar, statusFrom } fro
 import { mergeBlocks } from "@/lib/blocks";
 import { inviteCodeFor, userByShareCode } from "@/lib/invites";
 import { busyViews, statusView } from "@/lib/present";
-import { addDays, dayStartOf, fmtWeekLabel, isoDate, nowMs, todayIndexInWeek, weekStartFromParam, weekStartOf } from "@/lib/time";
+import { addDays, dayStartOf, fmtWeekLabel, nowMs, todayIndexInWeek, weekParam, weekStartFromParam, weekStartOf } from "@/lib/time";
 import { button, card } from "@/lib/ui";
 import { Avatar } from "@/components/Avatar";
 import { SignIn } from "@/components/SignIn";
@@ -24,7 +24,7 @@ export async function generateMetadata({ params, searchParams }: PageProps<"/s/[
   if (!owner) return { title: "Schedule", robots: { index: false, follow: false } };
   // The preview draws the week this link opens on, so `?w=` is carried into the image URL too.
   const weekStart = weekStartFromParam(typeof sp.w === "string" ? sp.w : undefined);
-  const images = [{ url: `/s/${code}/og?w=${isoDate(weekStart)}`, width: 1200, height: 630, alt: `${firstName(owner.name)}’s week on dispo` }];
+  const images = [{ url: `/s/${code}/og?w=${weekParam(weekStart)}`, width: 1200, height: 630, alt: `${firstName(owner.name)}’s week on dispo` }];
   const title = `${firstName(owner.name)}’s week`;
   const description = `When ${firstName(owner.name)} is free and busy, ${fmtWeekLabel(weekStart)}. See when you’re both free on dispo.`;
   return { title, description, robots: { index: false, follow: false }, openGraph: { title, description, images }, twitter: { card: "summary_large_image", title, description, images } };
@@ -76,7 +76,7 @@ export default async function PublicSchedule({ params, searchParams }: PageProps
       {cal ? (
         <>
           <div className="flex justify-end shrink-0">
-            <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={(w) => `/s/${code}?w=${isoDate(w)}`} />
+            <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={(w) => `/s/${code}?w=${weekParam(w)}`} />
           </div>
           <div className={`flex flex-col ${viewer ? "flex-1 min-h-0" : "h-[70dvh] min-h-80"}`}>
             <WeekView weekStart={weekStart} events={busyViews(mergeBlocks(week))} todayIndex={todayIndexInWeek(weekStart, now)} now={now} masked={false} />
