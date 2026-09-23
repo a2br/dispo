@@ -13,6 +13,8 @@ import { IcsError, icsErrorText } from "@/lib/ics";
 import { connectionBetween } from "@/lib/access";
 import { isLocale } from "@/i18n/config";
 import { getT, rememberLocale } from "@/i18n/server";
+import { addTimeBlock, removeTimeBlock } from "@/lib/timeblocks";
+import { addDays, zonedInstant } from "@/lib/time";
 import { addMembers, answerInvite, cancelInvite, createGroup, deleteGroup, leaveGroup, renameGroup } from "@/lib/groups";
 
 export type FormState = { error?: string; ok?: string } | undefined;
@@ -220,4 +222,45 @@ export async function deleteGroupAction(formData: FormData): Promise<void> {
   await deleteGroup(user.id, String(formData.get("groupId") ?? ""));
   revalidatePath("/", "layout");
   redirect("/");
+}
+
+// ---------- time blocks (your own busy/free time on top of the timetable) ----------
+
+/** The "Block time" form: busy or free on one day, optionally every week until a last day. */
+export async function addTimeBlockAction(formData: FormData): Promise<{ error?: string }> {
+  const user = await requireUser();
+  const t = (await getT()).calendar.blocks;
+  const date = String(formData.get("date") ?? "");
+  const start = zonedInstant(date, String(formData.get("from") ?? ""));
+  const end = zonedInstant(date, String(formData.get("to") ?? ""));
+  if (start == null || end == null) return { error: t.invalid };
+  if (end <= start) return { error: t.endBeforeStart };
+  const weekly = formData.get("weekly") === "on";
+  const last = String(formData.get("until") ?? "");
+  let until: number | null = null;
+  if (weekly && last) {
+    const lastDay = zonedInstant(last, "00:00");
+    if (lastDay == null) return { error: t.invalid };
+    until = addDays(lastDay, 1);
+    if (until <= start) return { error: t.untilBeforeStart };
+  }
+  const kind = formData.get("kind") === "free" ? "free" : "busy";
+  const ok = await addTimeBlock(user.id, { kind, start, end, weekly, until, note: String(formData.get("note") ?? "") });
+  if (!ok) return { error: t.tooMany };
+  revalidatePath("/", "layout");
+  return {};
+}
+
+/** One tap on a block in the calendar: skip a class (this time or every week), or free one week of a weekly block. */
+export async function freeTimeAction(start: number, end: number, weekly: boolean): Promise<void> {
+  const user = await requireUser();
+  if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end <= start || end - start > 86_400_000) return;
+  await addTimeBlock(user.id, { kind: "free", start, end, weekly: weekly === true });
+  revalidatePath("/", "layout");
+}
+
+export async function removeTimeBlockAction(id: string): Promise<void> {
+  const user = await requireUser();
+  await removeTimeBlock(user.id, String(id));
+  revalidatePath("/", "layout");
 }

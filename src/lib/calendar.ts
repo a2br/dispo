@@ -1,10 +1,11 @@
 import { and, asc, eq, gte, inArray, lt, notInArray, sql } from "drizzle-orm";
 import { db, dbReady, schema } from "@/db";
-import type { Calendar, Event, User } from "@/db/schema";
+import type { Calendar, User } from "@/db/schema";
 import { decrypt, encrypt } from "./crypto";
 import { IcsError, fetchIcs, normalizeIcsUrl, parseIcs, type ParsedEvent } from "./ics";
 import { dayStartOf } from "./time";
 import { mergeBlocks } from "./blocks";
+import { applyTimeBlocks, timeBlocksBetween, type CalEvent } from "./timeblocks";
 
 export const STALE_MS = 6 * 60 * 60 * 1000;
 
@@ -117,28 +118,43 @@ async function replaceEvents(userId: string, parsed: ParsedEvent[]): Promise<voi
 
 // ---------- queries ----------
 
-export async function eventsBetween(userId: string, from: number, to: number): Promise<Event[]> {
+/**
+ * What each person's schedule looks like in [from, to): their timetable with their own time blocks
+ * applied (skipped classes removed, other obligations added). Every view reads events through here.
+ */
+export async function eventsFor(userIds: string[], from: number, to: number): Promise<Map<string, CalEvent[]>> {
+  const out = new Map<string, CalEvent[]>();
+  if (userIds.length === 0) return out;
   await dbReady;
-  return db
-    .select()
-    .from(schema.events)
-    .where(and(eq(schema.events.userId, userId), lt(schema.events.start, to), gte(schema.events.end, from)))
-    .orderBy(asc(schema.events.start));
+  const [rows, blocks] = await Promise.all([
+    db
+      .select()
+      .from(schema.events)
+      .where(and(inArray(schema.events.userId, userIds), lt(schema.events.start, to), gte(schema.events.end, from))),
+    timeBlocksBetween(userIds, from, to),
+  ]);
+  for (const id of userIds)
+    out.set(id, applyTimeBlocks(rows.filter((r) => r.userId === id), blocks.filter((b) => b.userId === id), from, to));
+  return out;
+}
+
+export async function eventsBetween(userId: string, from: number, to: number): Promise<CalEvent[]> {
+  return (await eventsFor([userId], from, to)).get(userId) ?? [];
 }
 
 export type Status =
-  | { state: "busy"; until: number; event: Event }
-  | { state: "free"; until: number | null; next: Event | null } // until = next start today, null = free rest of day
+  | { state: "busy"; until: number; event: CalEvent }
+  | { state: "free"; until: number | null; next: CalEvent | null } // until = next start today, null = free rest of day
   | { state: "unknown" }
   // Not shown to this viewer: the person keeps their schedule private, or the viewer hasn't added theirs yet.
   | { state: "hidden"; reason: "private" | "needs-schedule" };
 
-export function statusFrom(events: Event[], now = Date.now()): Status {
+export function statusFrom(events: CalEvent[], now = Date.now()): Status {
   const dayEnd = dayStartOf(now) + 86_400_000;
   const blocks = mergeBlocks(events);
   const current = blocks.find((b) => b.start <= now && now < b.end);
   if (current) {
-    // During the 13:00–13:15 quarter no session has started yet; report the one about to begin.
+    // Merged blocks can hold sessions that touch; report the one running now.
     const event = current.events.find((e) => e.start <= now && now < e.end) ?? current.events.find((e) => e.end > now) ?? current.events[0];
     return { state: "busy", until: current.end, event };
   }
@@ -152,16 +168,7 @@ export async function statusesFor(userIds: string[], now = Date.now()): Promise<
   if (userIds.length === 0) return out;
   await dbReady;
   const from = dayStartOf(now);
-  const to = from + 86_400_000;
-  const rows = await db
-    .select()
-    .from(schema.events)
-    .where(and(inArray(schema.events.userId, userIds), lt(schema.events.start, to), gte(schema.events.end, from)))
-    .orderBy(asc(schema.events.start));
-  const cals = await db.select({ userId: schema.calendars.userId }).from(schema.calendars).where(inArray(schema.calendars.userId, userIds));
-  const hasCal = new Set(cals.map((c) => c.userId));
-  const byUser = new Map<string, Event[]>();
-  for (const r of rows) (byUser.get(r.userId) ?? byUser.set(r.userId, []).get(r.userId)!).push(r);
+  const [byUser, hasCal] = await Promise.all([eventsFor(userIds, from, from + 86_400_000), usersWithCalendar(userIds)]);
   for (const id of userIds) {
     out.set(id, hasCal.has(id) ? statusFrom(byUser.get(id) ?? [], now) : { state: "unknown" });
   }
@@ -219,19 +226,13 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 
-/** Today's merged busy blocks for many users (academic quarter applied), for the timeline strips. */
+/** Today's merged busy blocks for many users (academic quarter and time blocks applied), for the timeline strips. */
 export async function todayBlocksFor(userIds: string[], now = Date.now()): Promise<Map<string, { start: number; end: number }[]>> {
   const out = new Map<string, { start: number; end: number }[]>();
   if (userIds.length === 0) return out;
-  await dbReady;
   const from = dayStartOf(now);
-  const to = from + 86_400_000;
-  const rows = await db
-    .select()
-    .from(schema.events)
-    .where(and(inArray(schema.events.userId, userIds), lt(schema.events.start, to), gte(schema.events.end, from)))
-    .orderBy(asc(schema.events.start));
-  for (const id of userIds) out.set(id, mergeBlocks(rows.filter((r) => r.userId === id)).map(({ start, end }) => ({ start, end })));
+  const byUser = await eventsFor(userIds, from, from + 86_400_000);
+  for (const id of userIds) out.set(id, mergeBlocks(byUser.get(id) ?? []).map(({ start, end }) => ({ start, end })));
   return out;
 }
 

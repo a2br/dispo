@@ -1,4 +1,4 @@
-import type { Event } from "@/db/schema";
+import type { CalEvent } from "./timeblocks";
 
 const QUARTER = 15 * 60_000;
 
@@ -12,11 +12,14 @@ export function snapStart(ms: number): number {
   return d.getUTCMinutes() === 15 && d.getUTCSeconds() === 0 ? ms - QUARTER : ms;
 }
 
-export type Block = { start: number; end: number; events: Event[] };
+export type Block = { start: number; end: number; events: CalEvent[] };
 
-/** Snap starts to the full hour and merge sessions that touch or overlap, so 13:15–14:00 + 14:15–15:00 becomes 13:00–15:00. */
-export function mergeBlocks(events: Event[]): Block[] {
-  const sorted = events.map((ev) => ({ start: snapStart(ev.start), end: ev.end, ev })).sort((a, b) => a.start - b.start || a.end - b.end);
+/**
+ * Merge sessions that touch or overlap, so 13:00–14:00 + 14:00–15:00 becomes 13:00–15:00. Starts are
+ * already on the full hour: `eventsFor` applies the quarter (see `applyTimeBlocks`).
+ */
+export function mergeBlocks(events: CalEvent[]): Block[] {
+  const sorted = events.map((ev) => ({ start: ev.start, end: ev.end, ev })).sort((a, b) => a.start - b.start || a.end - b.end);
   const out: Block[] = [];
   for (const x of sorted) {
     const last = out[out.length - 1];

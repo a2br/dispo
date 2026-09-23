@@ -5,7 +5,8 @@ import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { eventsBetween, getCalendar, statusFrom } from "@/lib/calendar";
 import { statusView } from "@/lib/present";
 import { StatusPill } from "@/components/StatusPill";
-import { addDays, dayStartOf, localParts, relativeAge, nowMs, weekParam, weekStartOf } from "@/lib/time";
+import { addDays, dayStartOf, fmtDayLong, fmtDayMonth, fmtDayShort, fmtTime, localParts, relativeAge, nowMs, weekParam, weekStartOf } from "@/lib/time";
+import { listTimeBlocks } from "@/lib/timeblocks";
 import { Avatar } from "@/components/Avatar";
 import { DiscoverToggle } from "@/components/DiscoverToggle";
 import { PhoneForm } from "@/components/PhoneForm";
@@ -15,7 +16,7 @@ import { inviteCodeFor } from "@/lib/invites";
 import { icsErrorText } from "@/lib/ics";
 import { LanguagePicker } from "@/components/LanguagePicker";
 import { getLocale, getT } from "@/i18n/server";
-import { refreshMyCalendar, removeMyCalendar, setPublicLink, setVisibility, signOut } from "@/app/actions";
+import { refreshMyCalendar, removeMyCalendar, removeTimeBlockAction, setPublicLink, setVisibility, signOut } from "@/app/actions";
 import type { Visibility } from "@/db/schema";
 import { LOCALE_TAGS } from "@/i18n/config";
 
@@ -36,6 +37,8 @@ export default async function MePage() {
   const weekend = localParts(now).day >= 5;
   const shareWeek = weekend ? addDays(weekStartOf(now), 7) : weekStartOf(now);
   const inviteUrl = `${appUrl()}/i/${await inviteCodeFor(user)}`;
+  const timeBlocks = cal ? await listTimeBlocks(user.id, now) : [];
+  const tb = t.calendar.blocks;
 
   return (
     <main className="mx-auto max-w-2xl py-6 md:py-10 space-y-6">
@@ -130,6 +133,37 @@ export default async function MePage() {
           <PhoneForm phone={user.phone} />
         </div>
       </section>
+
+      {cal && (
+        <section className="space-y-2">
+          <h2 className={sectionTitle}>{tb.manageTitle}</h2>
+          <div className={`${card} divide-y divide-line`}>
+            <p className="px-4 py-3 text-sm text-muted">{tb.manageHint}</p>
+            {timeBlocks.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-muted">{tb.manageEmpty}</p>
+            ) : (
+              timeBlocks.map((b) => (
+                <div key={b.id} className="flex items-center gap-3 px-4 py-2">
+                  <span className={`shrink-0 text-xs font-bold uppercase tracking-wide w-24 whitespace-nowrap ${b.kind === "free" ? "text-free" : ""}`}>{tb[b.kind]}</span>
+                  <span className="flex-1 min-w-0 text-sm">
+                    <span className="block">
+                      {b.weekly ? tb.everyDay(fmtDayLong(b.start, locale)) : `${fmtDayShort(b.start, locale)} ${fmtDayMonth(b.start, locale)}`} · {fmtTime(b.start)}–{fmtTime(b.end)}
+                    </span>
+                    {(b.note || b.until) && (
+                      <span className="block text-muted truncate">
+                        {[b.note, b.until ? tb.untilDate(fmtDayMonth(b.until - 1, locale)) : null].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
+                  </span>
+                  <form action={removeTimeBlockAction.bind(null, b.id)}>
+                    <button className={button("quiet")}>{tb.remove}</button>
+                  </form>
+                </div>
+              ))
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="space-y-2">
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t.me.calendar.title}</h2>

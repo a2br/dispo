@@ -1,6 +1,5 @@
-import { and, asc, gte, inArray, lt } from "drizzle-orm";
-import { db, dbReady, schema } from "@/db";
 import { mergeBlocks } from "./blocks";
+import { eventsFor, usersWithCalendar } from "./calendar";
 import { commonFree, dayWindow, type Interval, type MemberData } from "./groupcalc";
 import { addDays, dayStartOf, localParts } from "./time";
 
@@ -14,15 +13,9 @@ export async function nextCommonSlots(groups: { id: string; userIds: string[] }[
   const out = new Map<string, (Interval & { now: boolean }) | null>();
   const everyone = [...new Set(groups.flatMap((g) => g.userIds))];
   if (everyone.length === 0) return out;
-  await dbReady;
   const from = dayStartOf(now);
-  const to = addDays(from, LOOKAHEAD_DAYS);
-  const [rows, cals] = await Promise.all([
-    db.select().from(schema.events).where(and(inArray(schema.events.userId, everyone), lt(schema.events.start, to), gte(schema.events.end, from))).orderBy(asc(schema.events.start)),
-    db.select({ userId: schema.calendars.userId }).from(schema.calendars).where(inArray(schema.calendars.userId, everyone)),
-  ]);
-  const hasCal = new Set(cals.map((c) => c.userId));
-  const blocks = new Map(everyone.map((id) => [id, mergeBlocks(rows.filter((r) => r.userId === id)).map(({ start, end }) => ({ start, end }))]));
+  const [events, hasCal] = await Promise.all([eventsFor(everyone, from, addDays(from, LOOKAHEAD_DAYS)), usersWithCalendar(everyone)]);
+  const blocks = new Map(everyone.map((id) => [id, mergeBlocks(events.get(id) ?? []).map(({ start, end }) => ({ start, end }))]));
 
   for (const g of groups) {
     const members: MemberData[] = g.userIds.map((id) => ({ id, name: "", isSelf: false, hasCalendar: hasCal.has(id), blocks: blocks.get(id) ?? [] }));

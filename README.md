@@ -106,6 +106,12 @@ on controls, a fade-up for new content, disabled under prefers-reduced-motion. L
 the app open in a new tab (`ExternalLink`).
 Week navigation is understated because most weeks repeat: "next" is a button, "previous" is
 faint, "Today" only appears off-week.
+Time blocks sit on top of the timetable: tap a class in your own week to skip it (once or every
+week), or an empty hour / "Block time" to add busy time the feed doesn't have (a job, sport).
+They're stored by time, not by event, so they survive feed refreshes; later blocks win where they
+overlap. Every view reads events through `eventsFor`, which applies them, so Now, statuses, group
+slots and share links all agree. Notes on busy blocks are private: others see "Busy".
+
 ## Stack
 
 Next.js 16 (App Router, server actions), Tailwind 4, Drizzle + libsql (SQLite file
@@ -124,7 +130,8 @@ src/
   app/api/search  name search (JSON)
   components/     AppNav (sidebar / bottom bar), WeekView (day timeline on phones, week grid on md+),
                   GroupWeek, GroupPicker, TodayStrip, SearchBox, …
-  lib/            auth, calendar (ingest/refresh/queries), blocks (academic quarter), groupcalc, groups,
+  lib/            auth, calendar (ingest/refresh/queries), blocks (academic quarter), timeblocks
+                  (skipped classes / own busy time), groupcalc, groups,
                   classmates (flagged), features, ics, access, time
   db/             schema + client (tables auto-created on first use)
 scripts/seed-dev.ts   fake users sharing your feed, for local testing

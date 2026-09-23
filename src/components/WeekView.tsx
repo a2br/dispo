@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import type { EventView } from "@/lib/present";
 import { toneFor } from "@/lib/present";
-import { addDays, fmtDayNum, fmtDayShort, fmtTime, localParts } from "@/lib/time";
+import { addDays, dateInputValue, fmtDayNum, fmtDayShort, fmtTime, localParts, zonedInstant } from "@/lib/time";
 import { useLocale, useT } from "@/i18n/client";
+import { TimeBlockSheet, type SheetTarget } from "./TimeBlockSheet";
 
 type Props = {
   weekStart: number;
@@ -12,7 +13,15 @@ type Props = {
   todayIndex: number | null;
   now: number;
   masked: boolean;
+  /** Your own week: tap a block to skip or change it, an empty hour to block time. */
+  editable?: boolean;
 };
+
+/** Start of `hour` on the Zurich day `dayMs`, and the hour after it: the default for a new block. */
+function hourSlot(dayMs: number, hour: number): { start: number; end: number } {
+  const start = zonedInstant(dateInputValue(dayMs), `${String(hour).padStart(2, "0")}:00`) ?? dayMs + hour * 3_600_000;
+  return { start, end: start + 3_600_000 };
+}
 
 /** Assign side-by-side lanes to events that overlap within a day. */
 function withLanes(list: EventView[]): { e: EventView; lane: number; lanes: number }[] {
@@ -40,23 +49,41 @@ function withLanes(list: EventView[]): { e: EventView; lane: number; lanes: numb
 }
 
 function colorStyle(e: EventView): React.CSSProperties {
+  // Your free time: an outline where something was cleared, so it can be seen and undone.
+  if (e.block?.kind === "free")
+    return { background: "color-mix(in oklab, var(--free) 6%, transparent)", borderColor: "var(--free)", borderStyle: "dashed", color: "var(--free)" };
+  // Personal plans: hatched, so they read as busy without looking like a class.
+  if (e.personal)
+    return {
+      background: "repeating-linear-gradient(135deg, color-mix(in oklab, var(--foreground) 9%, var(--surface)) 0 5px, var(--surface) 5px 10px)",
+      borderColor: "color-mix(in oklab, var(--foreground) 35%, var(--surface))",
+      borderLeft: "3px solid var(--foreground)",
+      color: "var(--foreground)",
+    };
   if (e.masked) return { background: "color-mix(in oklab, var(--muted) 20%, var(--surface))", borderColor: "color-mix(in oklab, var(--muted) 45%, var(--surface))", color: "var(--muted)" };
   const t = toneFor(e.title);
   return { background: t.bg, borderColor: t.border, borderLeft: `3px solid ${t.base}`, color: t.text };
 }
 
-function titleFor(e: EventView): string {
-  return [e.title, `${fmtTime(e.start)}–${fmtTime(e.end)}`, e.masked ? null : e.rooms].filter(Boolean).join(" · ");
+/** A block's name: the course, your note, or "Busy" / "Free" for blocks without one. */
+function useLabel(): (e: EventView) => string {
+  const t = useT();
+  return (e) => e.title || (e.block?.kind === "free" ? t.calendar.blocks.free : t.status.busy);
+}
+
+function titleFor(e: EventView, label: string): string {
+  return [label, `${fmtTime(e.start)}–${fmtTime(e.end)}`, e.masked ? null : e.rooms].filter(Boolean).join(" · ");
 }
 
 /** Block text; `.ev` sizing in globals.css picks one line, title + room, or a two-line title. */
 function BlockBody({ e, live }: { e: EventView; live?: boolean }) {
   const t = useT();
-  const sub = e.masked ? "" : [t.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
+  const label = useLabel()(e);
+  const sub = e.masked ? "" : e.block ? (e.block.weekly ? t.calendar.blocks.weekly : "") : [t.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
   return (
     <div className="ev-body">
       <div className="ev-head">
-        <span className="ev-title">{e.title}</span>
+        <span className="ev-title">{label}</span>
         {live && <span className="text-[10px] font-bold uppercase tracking-wide text-busy shrink-0">{t.calendar.live}</span>}
       </div>
       {sub && <div className="ev-sub">{sub}</div>}
@@ -69,9 +96,18 @@ function BlockBody({ e, live }: { e: EventView; live?: boolean }) {
  * on wider screens. Hour rows share the available height, so the whole day is visible without
  * scrolling. Blocks carry no times; the hour axis already shows them.
  */
-export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) {
+export function WeekView({ weekStart, events, todayIndex, now, masked, editable = false }: Props) {
   const t = useT();
   const locale = useLocale();
+  const label = useLabel();
+  const [target, setTarget] = useState<SheetTarget | null>(null);
+  const close = useCallback(() => setTarget(null), []);
+  const pick = editable ? (e: EventView) => setTarget({ type: "event", e }) : undefined;
+  const pickHour = editable ? (dayMs: number, hour: number) => setTarget({ type: "new", ...hourSlot(dayMs, hour) }) : undefined;
+  // While the sheet is open, the slot or block it's about stays marked, so a tap visibly lands where you meant.
+  const pickedSlot = target?.type === "new" ? localParts(target.start) : null;
+  const isPickedHour = (day: number, hour: number) => pickedSlot?.day === day && pickedSlot.minutes === hour * 60;
+  const isPickedEvent = (e: EventView) => target?.type === "event" && target.e.id === e.id && target.e.start === e.start;
   const dayCount = events.some((e) => localParts(e.start).day >= 5) ? 7 : 5;
   const [selected, setSelected] = useState(todayIndex != null && todayIndex < dayCount ? todayIndex : 0);
   const byDay: EventView[][] = Array.from({ length: dayCount }, () => []);
@@ -113,8 +149,8 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
                 <span className={`text-[11px] uppercase tracking-wide ${isSel ? "opacity-80" : "text-muted"}`}>{fmtDayShort(dayMs, locale)}</span>
                 <span className={`text-base font-bold leading-none ${isToday && !isSel ? "text-accent-ink" : ""}`}>{fmtDayNum(dayMs)}</span>
                 <span className="flex gap-0.5 h-1.5">
-                  {list.slice(0, 4).map((e) => (
-                    <span key={e.id} className="size-1.5 rounded-full" style={{ background: e.masked ? "var(--muted)" : toneFor(e.title).base }} />
+                  {list.filter((e) => e.block?.kind !== "free").slice(0, 4).map((e, k) => (
+                    <span key={k} className="size-1.5 rounded-full" style={{ background: e.masked ? "var(--muted)" : e.personal ? "var(--foreground)" : toneFor(e.title).base }} />
                   ))}
                 </span>
               </button>
@@ -129,6 +165,10 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
           maxH={maxH}
           isToday={selected === todayIndex}
           isPast={todayIndex == null ? weekStart < now : selected < todayIndex}
+          onPick={pick}
+          onPickHour={pickHour && ((hour) => pickHour(addDays(weekStart, selected), hour))}
+          isPickedHour={(hour) => isPickedHour(selected, hour)}
+          isPickedEvent={isPickedEvent}
         />
       </div>
 
@@ -155,16 +195,33 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
             const col = (k % dayCount) + 2;
             const row = Math.floor(k / dayCount) * 4 + 1;
             const pastCell = todayIndex == null ? weekStart < now : col - 2 < todayIndex;
-            return <div key={k} className={`border-l border-line/70 ${row > 1 ? "border-t" : ""} ${pastCell ? "bg-foreground/[0.03]" : ""}`} style={{ gridColumn: col, gridRow: `${row} / span 4` }} />;
+            const cls = `border-l border-line/70 ${row > 1 ? "border-t" : ""} ${pastCell ? "bg-foreground/[0.03]" : ""}`;
+            const style = { gridColumn: col, gridRow: `${row} / span 4` };
+            if (!pickHour) return <div key={k} className={cls} style={style} />;
+            const hour = minH + Math.floor(k / dayCount);
+            return (
+              <button
+                key={k}
+                type="button"
+                // Mouse/touch shortcut only: the header's "Block time" button is the accessible way in.
+                tabIndex={-1}
+                aria-hidden
+                onClick={() => pickHour(addDays(weekStart, col - 2), hour)}
+                className={`${cls} cursor-pointer hover:bg-accent/5 active:bg-accent/15 ${isPickedHour(col - 2, hour) ? "slot-picked" : ""}`}
+                style={style}
+              />
+            );
           })}
           {byDay.flatMap((list, day) =>
             withLanes(list).map(({ e, lane, lanes }) => {
               const s = localParts(e.start);
               const en = localParts(e.end);
+              const Tag = pick && !e.masked ? "button" : "div";
               return (
-                <div
-                  key={e.id}
-                  className="ev m-px rounded-md border px-1.5 py-0.5 text-[11px] leading-tight overflow-hidden"
+                <Tag
+                  key={`${e.id}:${e.start}`}
+                  {...(Tag === "button" ? { type: "button" as const, onClick: () => pick!(e) } : {})}
+                  className={`ev m-px rounded-md border px-1.5 py-0.5 text-[11px] leading-tight overflow-hidden text-left ${Tag === "button" ? "cursor-pointer hover:brightness-95 active:brightness-90" : ""} ${isPickedEvent(e) ? "ev-picked" : ""}`}
                   style={{
                     gridColumn: day + 2,
                     gridRow: `${Math.max(1, rowOfMinutes(s.minutes))} / ${Math.min(slots + 1, rowOfMinutes(en.minutes || 24 * 60))}`,
@@ -172,10 +229,10 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
                     marginLeft: lanes > 1 ? `calc(${(lane * 100) / lanes}% + 1px)` : undefined,
                     ...colorStyle(e),
                   }}
-                  title={titleFor(e)}
+                  title={titleFor(e, label(e))}
                 >
                   <BlockBody e={e} />
-                </div>
+                </Tag>
               );
             }),
           )}
@@ -187,18 +244,42 @@ export function WeekView({ weekStart, events, todayIndex, now, masked }: Props) 
         </div>
       </div>
       {masked && <p className="shrink-0 mt-2 text-xs text-muted text-center">{t.calendar.maskedNote}</p>}
+      {target && <TimeBlockSheet target={target} onClose={close} />}
     </section>
   );
 }
 
 /** One day as a timeline that fills the remaining height: blocks sit at their real times. */
-function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: EventView[]; now: number; minH: number; maxH: number; isToday: boolean; isPast: boolean }) {
-  const t = useT();
+function DayTimeline({
+  events,
+  now,
+  minH,
+  maxH,
+  isToday,
+  isPast,
+  onPick,
+  onPickHour,
+  isPickedHour,
+  isPickedEvent,
+}: {
+  events: EventView[];
+  now: number;
+  minH: number;
+  maxH: number;
+  isToday: boolean;
+  isPast: boolean;
+  onPick?: (e: EventView) => void;
+  onPickHour?: (hour: number) => void;
+  isPickedHour: (hour: number) => boolean;
+  isPickedEvent: (e: EventView) => boolean;
+}) {
   const hours = maxH - minH;
   const slots = hours * 4;
   const rowOfMinutes = (m: number) => Math.round((m - minH * 60) / 15) + 1;
   const nowFrac = (localParts(now).minutes - minH * 60) / (hours * 60);
   const pastFrac = isPast ? 1 : isToday ? Math.max(0, Math.min(1, nowFrac)) : 0;
+  const t = useT();
+  const label = useLabel();
 
   return (
     <div className="relative flex-1 min-h-72 rounded-2xl bg-surface border border-line overflow-hidden animate-fade">
@@ -208,17 +289,32 @@ function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: Eve
             {String(minH + h).padStart(2, "0")}:00
           </div>
         ))}
-        {Array.from({ length: hours }, (_, h) => (
-          <div key={`g${h}`} className={`border-l border-line/70 ${h === 0 ? "" : "border-t"}`} style={{ gridColumn: 2, gridRow: `${h * 4 + 1} / span 4` }} />
-        ))}
+        {Array.from({ length: hours }, (_, h) => {
+          const cls = `border-l border-line/70 ${h === 0 ? "" : "border-t"}`;
+          const style = { gridColumn: 2, gridRow: `${h * 4 + 1} / span 4` };
+          if (!onPickHour) return <div key={`g${h}`} className={cls} style={style} />;
+          return (
+            <button
+              key={`g${h}`}
+              type="button"
+              tabIndex={-1}
+              aria-hidden
+              onClick={() => onPickHour(minH + h)}
+              className={`${cls} active:bg-accent/15 ${isPickedHour(minH + h) ? "slot-picked" : ""}`}
+              style={style}
+            />
+          );
+        })}
         {withLanes(events).map(({ e, lane, lanes }) => {
           const live = e.start <= now && now < e.end;
           const s = localParts(e.start);
           const en = localParts(e.end);
+          const Tag = onPick && !e.masked ? "button" : "div";
           return (
-            <div
-              key={e.id}
-              className="ev m-px rounded-md border px-2 py-0.5 text-xs leading-tight overflow-hidden"
+            <Tag
+              key={`${e.id}:${e.start}`}
+              {...(Tag === "button" ? { type: "button" as const, onClick: () => onPick!(e) } : {})}
+              className={`ev m-px rounded-md border px-2 py-0.5 text-xs leading-tight overflow-hidden text-left ${Tag === "button" ? "active:brightness-90" : ""} ${isPickedEvent(e) ? "ev-picked" : ""}`}
               style={{
                 gridColumn: 2,
                 gridRow: `${Math.max(1, rowOfMinutes(s.minutes))} / ${Math.min(slots + 1, rowOfMinutes(en.minutes || 24 * 60))}`,
@@ -226,10 +322,10 @@ function DayTimeline({ events, now, minH, maxH, isToday, isPast }: { events: Eve
                 marginLeft: lanes > 1 ? `calc(${(lane * 100) / lanes}% + 1px)` : undefined,
                 ...colorStyle(e),
               }}
-              title={titleFor(e)}
+              title={titleFor(e, label(e))}
             >
-              <BlockBody e={e} live={live} />
-            </div>
+              <BlockBody e={e} live={live && e.block?.kind !== "free"} />
+            </Tag>
           );
         })}
       </div>

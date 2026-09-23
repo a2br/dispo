@@ -44,6 +44,46 @@ const calendar = {
   noSchedule: "no schedule",
   /** `names` is already a list ("Ana and Tom"). */
   missing: (names: string, n: number) => `${names} ${n === 1 ? "has" : "have"} no schedule, so ${n === 1 ? "isn’t" : "aren’t"} counted.`,
+  /** Time blocks: your own busy or free time on top of the timetable. */
+  blocks: {
+    add: "Block time",
+    title: "Block time",
+    busy: "Busy",
+    free: "Free",
+    busyHint: "For plans your timetable doesn’t show: a job, sport, an appointment.",
+    freeHint: "Clears anything scheduled then, like a class you’re skipping.",
+    day: "Day",
+    from: "From",
+    to: "To",
+    note: "Note",
+    notePlaceholder: "Only you see it",
+    weekly: "Every week",
+    until: "Last day",
+    optional: "optional",
+    save: "Save",
+    cancel: "Cancel",
+    invalid: "Pick a day, a start and an end.",
+    endBeforeStart: "The end has to be after the start.",
+    untilBeforeStart: "The last day has to come after the first.",
+    tooMany: "That’s a lot of blocks already. Remove a few in Settings first.",
+    /** On a class: you'll show as free then. */
+    skipOnce: "Skip this time",
+    skipWeekly: "Skip every week",
+    skipHint: "You’ll show as free then. Your timetable itself doesn’t change.",
+    freeOnce: "Free this week only",
+    remove: "Remove",
+    removeWeekly: "Remove every week",
+    undo: "Undo",
+    undoWeekly: "Undo every week",
+    noteIsPrivate: "Others only see “Busy”.",
+    /** `day` is a weekday name, e.g. "Tuesday". */
+    everyDay: (day: string) => `Every ${day}`,
+    untilDate: (date: string) => `until ${date}`,
+    /** Settings section listing them. */
+    manageTitle: "Time blocks",
+    manageHint: "Your changes on top of the timetable. In Calendar, tap a class to skip it, or an empty slot to block time.",
+    manageEmpty: "None right now.",
+  },
   /** Picking who's on the calendar. */
   picker: {
     removeAria: (name: string) => `Remove ${name} from the view`,

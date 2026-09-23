@@ -81,6 +81,18 @@ export function fmtWeekLabel(weekStart: number, locale: Locale): string {
   return `${fmtDayMonth(weekStart, locale)} – ${fmtDayMonth(addDays(weekStart, 4), locale)}`;
 }
 
+/** `YYYY-MM-DD` of the Zurich day containing `ms`, as a date input wants it. */
+export function dateInputValue(ms: number): string {
+  return formatInTimeZone(ms, TZ, "yyyy-MM-dd");
+}
+
+/** The instant a Zurich wall-clock `YYYY-MM-DD` + `HH:MM` stands for, or null when either is malformed. */
+export function zonedInstant(date: string, time: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) return null;
+  const ms = fromZonedTime(`${date}T${time}:00`, TZ).getTime();
+  return Number.isNaN(ms) || dateInputValue(ms) !== date ? null : ms;
+}
+
 /** Day index (Mon=0..Sun=6) and minutes since local midnight, in Zurich. */
 export function localParts(ms: number): { day: number; minutes: number } {
   const z = toZonedTime(ms, TZ);

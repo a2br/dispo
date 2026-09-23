@@ -150,6 +150,27 @@ summary {
 main {
   animation: fade 200ms ease-out both;
 }
+/* Calendar taps: the slot or block you picked flashes in the accent colour and stays marked while its sheet is open. */
+.slot-picked {
+  background-color: color-mix(in oklab, var(--accent) 14%, transparent);
+  box-shadow: inset 0 0 0 2px var(--accent);
+  animation: slot-pick 450ms ease-out;
+}
+@keyframes slot-pick {
+  from {
+    background-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  }
+}
+.ev-picked {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  animation: ev-pick 350ms ease-out;
+}
+@keyframes ev-pick {
+  from {
+    filter: brightness(0.85);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

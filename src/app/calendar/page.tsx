@@ -9,13 +9,15 @@ import { STALE_MS, connectionsOf, eventsBetween, getCalendar, getUserById, refre
 import { mergeBlocks } from "@/lib/blocks";
 import { getGroup, listGroups, shareAGroup } from "@/lib/groups";
 import type { MemberData } from "@/lib/groupcalc";
-import { eventView, statusView } from "@/lib/present";
+import { eventView, freeViews, statusView } from "@/lib/present";
+import { occurrences, timeBlocksBetween } from "@/lib/timeblocks";
 import { addDays, dayStartOf, nowMs, relativeAge, todayIndexInWeek, weekParam, weekStartFromParam, weekStartOf } from "@/lib/time";
 import { PeoplePicker } from "@/components/PeoplePicker";
 import { GroupWeek } from "@/components/GroupWeek";
 import { StatusPill } from "@/components/StatusPill";
 import { WeekView } from "@/components/WeekView";
 import { WeekNav } from "@/components/WeekNav";
+import { TimeBlockButton } from "@/components/TimeBlockButton";
 import { button } from "@/lib/ui";
 import { getT } from "@/i18n/server";
 
@@ -91,9 +93,14 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
   // Solo view: your own week with full details.
   const myCal = comparing ? null : await getCalendar(viewer.id);
   if (myCal && (!myCal.lastFetchedAt || now - myCal.lastFetchedAt > STALE_MS)) after(() => refreshCalendar(viewer.id));
-  const [myWeek, myToday] = myCal
-    ? await Promise.all([eventsBetween(viewer.id, weekStart, weekEnd), eventsBetween(viewer.id, dayStartOf(now), dayStartOf(now) + 86_400_000)])
-    : [[], []];
+  const [myWeek, myToday, myBlocks] = myCal
+    ? await Promise.all([
+        eventsBetween(viewer.id, weekStart, weekEnd),
+        eventsBetween(viewer.id, dayStartOf(now), dayStartOf(now) + 86_400_000),
+        timeBlocksBetween([viewer.id], weekStart, weekEnd),
+      ])
+    : [[], [], []];
+  const myFree = freeViews(myBlocks.flatMap((b) => occurrences(b, weekStart, weekEnd)));
 
   // Fills the screen exactly (minus the phone's bottom bar), so the calendar never needs page scrolling.
   return (
@@ -106,8 +113,9 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
           <WeekNav weekStart={weekStart} thisWeekStart={weekStartOf(now)} hrefFor={weekHref} />
         </div>
         {!comparing && myCal && (
-          <div className="basis-full">
+          <div className="basis-full flex flex-wrap items-center justify-between gap-2">
             <StatusPill status={statusView(statusFrom(myToday, now), t, "full")} />
+            <TimeBlockButton weekStart={weekStart} now={now} />
           </div>
         )}
       </header>
@@ -141,7 +149,7 @@ export default async function CalendarPage({ searchParams }: PageProps<"/calenda
         <GroupWeek weekStart={weekStart} now={now} todayIndex={todayIdx} members={members} />
       ) : myCal ? (
         <>
-          <WeekView weekStart={weekStart} events={myWeek.map(eventView)} todayIndex={todayIdx} now={now} masked={false} />
+          <WeekView weekStart={weekStart} events={[...myWeek.map((e) => eventView(e, true)), ...myFree]} todayIndex={todayIdx} now={now} masked={false} editable />
           <p className="shrink-0 text-[11px] text-muted text-center">
             {myCal.lastOkAt ? tc.synced(relativeAge(myCal.lastOkAt, t.common.ago, now)) : tc.neverSynced}
             {myCal.lastError ? ` · ${tc.refreshFailed}` : ""} · <Link href="/me" className="link">{tc.manage}</Link>

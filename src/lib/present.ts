@@ -1,6 +1,7 @@
-import type { Event, User } from "@/db/schema";
+import type { Event, TimeBlockKind, User } from "@/db/schema";
 import type { Status } from "./calendar";
-import { snapStart, type Block } from "./blocks";
+import type { Block } from "./blocks";
+import type { CalEvent, Occurrence } from "./timeblocks";
 import { fmtTime } from "./time";
 import type { Messages } from "@/i18n/messages";
 
@@ -17,14 +18,15 @@ export function statusView(s: Status, t: Messages, access: "full" | "busy" | "no
       return {
         state: "busy",
         label: t.status.busyUntil(fmtTime(s.until)),
-        detail: access === "full" ? [s.event.course, s.event.rooms].filter(Boolean).join(" · ") : undefined,
+        // Notes on personal blocks are for their owner: others only learn "busy".
+        detail: access === "full" && !s.event.personal ? [s.event.course, s.event.rooms].filter(Boolean).join(" · ") : undefined,
       };
     case "free":
       if (s.until == null) return { state: "free", label: t.status.freeRestOfDay };
       return {
         state: "free",
         label: t.status.freeUntil(fmtTime(s.until)),
-        detail: access === "full" && s.next ? t.status.then(s.next.course) : undefined,
+        detail: access === "full" && s.next && !s.next.personal ? t.status.then(s.next.course) : undefined,
       };
   }
 }
@@ -46,11 +48,43 @@ export type EventView = {
   rooms: string | null;
   teacher: string | null;
   masked: boolean;
+  /** A personal busy block: drawn apart from classes, titled with its note (own view) or "Busy". */
+  personal?: boolean;
+  /** Own view only: the time block behind this entry, so it can be changed. */
+  block?: { id: string; kind: TimeBlockKind; weekly: boolean };
 };
 
-/** Detailed event for display. Starts follow the academic quarter: a 15:15 session shows from 15:00. */
-export function eventView(e: Event): EventView {
-  return { id: e.id, start: snapStart(e.start), end: e.end, title: e.course, kind: e.kind, code: e.code, rooms: e.rooms, teacher: e.teacher, masked: false };
+/**
+ * Detailed event for display (starts already follow the academic quarter). `own` is the owner's
+ * view: only they see the notes on their busy blocks, and only they can change them.
+ */
+export function eventView(e: CalEvent, own = false): EventView {
+  const base = { id: e.id, start: e.start, end: e.end, kind: e.kind, code: e.code, rooms: e.rooms, teacher: e.teacher, masked: false };
+  if (!e.personal) return { ...base, title: e.course };
+  return {
+    ...base,
+    title: own ? (e.personal.note ?? "") : "",
+    personal: true,
+    block: own ? { id: e.personal.blockId, kind: "busy", weekly: e.personal.weekly } : undefined,
+  };
+}
+
+/** The owner's free blocks, drawn as outlines over the week so they can see and undo them. */
+export function freeViews(occ: Occurrence[]): EventView[] {
+  return occ
+    .filter((o) => o.block.kind === "free")
+    .map((o, i) => ({
+      id: -100_000 - i,
+      start: o.start,
+      end: o.end,
+      title: "",
+      kind: "other" as Event["kind"],
+      code: null,
+      rooms: null,
+      teacher: null,
+      masked: false,
+      block: { id: o.block.id, kind: "free" as const, weekly: o.block.weekly },
+    }));
 }
 
 /** Free/busy view: merged blocks only, so the number and length of individual sessions don't leak. */

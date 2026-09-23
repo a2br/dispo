@@ -61,6 +61,35 @@ export const events = sqliteTable(
   (t) => [uniqueIndex("events_user_uid_idx").on(t.userId, t.uid), index("events_user_start_idx").on(t.userId, t.start)],
 );
 
+export type TimeBlockKind = "busy" | "free";
+
+/**
+ * Changes a person makes on top of their timetable: "busy" adds an obligation the feed doesn't have,
+ * "free" clears whatever is scheduled then (a skipped class). Kept by time, not by event, so they
+ * survive feed refreshes. Later blocks win over earlier ones where they overlap.
+ */
+export const timeBlocks = sqliteTable(
+  "time_blocks",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<TimeBlockKind>().notNull(),
+    /** First occurrence, epoch ms. */
+    start: integer("start").notNull(),
+    end: integer("end").notNull(),
+    /** Private note on a busy block; others only ever see "Busy". */
+    note: text("note"),
+    /** Repeats every week (same local time) from `start`. */
+    weekly: integer("weekly", { mode: "boolean" }).notNull().default(false),
+    /** Weekly only: no occurrence starts at or after this instant. Null = no end. */
+    until: integer("until"),
+    createdAt: integer("created_at").notNull(),
+  },
+  (t) => [index("time_blocks_user_idx").on(t.userId)],
+);
+
 export type ConnectionStatus = "pending" | "accepted";
 
 export const connections = sqliteTable(
@@ -143,4 +172,5 @@ export type User = typeof users.$inferSelect;
 export type SavedGroup = typeof savedGroups.$inferSelect;
 export type Calendar = typeof calendars.$inferSelect;
 export type Event = typeof events.$inferSelect;
+export type TimeBlock = typeof timeBlocks.$inferSelect;
 export type Connection = typeof connections.$inferSelect;
