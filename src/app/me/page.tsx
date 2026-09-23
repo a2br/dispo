@@ -144,7 +144,7 @@ export default async function MePage() {
             ) : (
               timeBlocks.map((b) => (
                 <div key={b.id} className="flex items-center gap-3 px-4 py-2">
-                  <span className={`shrink-0 text-xs font-bold uppercase tracking-wide w-24 whitespace-nowrap ${b.kind === "free" ? "text-free" : ""}`}>{tb[b.kind]}</span>
+                  <span className={`shrink-0 text-xs font-bold uppercase tracking-wide w-24 whitespace-nowrap ${b.kind !== "busy" ? "text-free" : ""}`}>{tb[b.kind]}</span>
                   <span className="flex-1 min-w-0 text-sm">
                     <span className="block">
                       {b.weekly ? tb.everyDay(fmtDayLong(b.start, locale)) : `${fmtDayShort(b.start, locale)} ${fmtDayMonth(b.start, locale)}`} · {fmtTime(b.start)}–{fmtTime(b.end)}

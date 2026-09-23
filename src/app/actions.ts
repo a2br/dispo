@@ -13,7 +13,7 @@ import { IcsError, icsErrorText } from "@/lib/ics";
 import { connectionBetween } from "@/lib/access";
 import { isLocale } from "@/i18n/config";
 import { getT, rememberLocale } from "@/i18n/server";
-import { addTimeBlock, removeTimeBlock } from "@/lib/timeblocks";
+import { addTimeBlock, getTimeBlock, removeTimeBlock } from "@/lib/timeblocks";
 import { addDays, zonedInstant } from "@/lib/time";
 import { addMembers, answerInvite, cancelInvite, createGroup, deleteGroup, leaveGroup, renameGroup } from "@/lib/groups";
 
@@ -251,11 +251,20 @@ export async function addTimeBlockAction(formData: FormData): Promise<{ error?: 
   return {};
 }
 
-/** One tap on a block in the calendar: skip a class (this time or every week), or free one week of a weekly block. */
-export async function freeTimeAction(start: number, end: number, weekly: boolean): Promise<void> {
+/**
+ * One tap on a block in the calendar: skip a class (this time or every week), or one week of a weekly
+ * busy block. Only that session goes: anything overlapping it stays, so you're free only where nothing else is on.
+ */
+export async function skipAction(start: number, end: number, weekly: boolean, what: { course?: string; blockId?: string }): Promise<void> {
   const user = await requireUser();
   if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || end <= start || end - start > 86_400_000) return;
-  await addTimeBlock(user.id, { kind: "free", start, end, weekly: weekly === true });
+  if (typeof what?.blockId === "string") {
+    const block = await getTimeBlock(user.id, what.blockId);
+    if (block?.kind !== "busy") return;
+    await addTimeBlock(user.id, { kind: "skip", start, end, target: block.id, note: block.note });
+  } else if (typeof what?.course === "string") {
+    await addTimeBlock(user.id, { kind: "skip", start, end, weekly: weekly === true, target: what.course, note: what.course });
+  } else return;
   revalidatePath("/", "layout");
 }
 

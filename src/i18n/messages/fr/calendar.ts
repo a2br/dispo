@@ -44,6 +44,7 @@ const calendar: Messages["calendar"] = {
     title: "Bloquer du temps",
     busy: "Occupé",
     free: "Libre",
+    skip: "Séché",
     busyHint: "Pour ce que ton horaire ne montre pas : un job, du sport, un rendez-vous.",
     freeHint: "Efface ce qui est prévu à ce moment-là, comme un cours que tu sèches.",
     day: "Jour",

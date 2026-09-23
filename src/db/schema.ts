@@ -61,12 +61,13 @@ export const events = sqliteTable(
   (t) => [uniqueIndex("events_user_uid_idx").on(t.userId, t.uid), index("events_user_start_idx").on(t.userId, t.start)],
 );
 
-export type TimeBlockKind = "busy" | "free";
+export type TimeBlockKind = "busy" | "free" | "skip";
 
 /**
  * Changes a person makes on top of their timetable: "busy" adds an obligation the feed doesn't have,
- * "free" clears whatever is scheduled then (a skipped class). Kept by time, not by event, so they
- * survive feed refreshes. Later blocks win over earlier ones where they overlap.
+ * "free" clears whatever is scheduled then, "skip" leaves out one session (a class you're not going
+ * to) and nothing that overlaps it. Kept by time, not by event id, so they survive feed refreshes.
+ * Later blocks win over earlier ones where they overlap.
  */
 export const timeBlocks = sqliteTable(
   "time_blocks",
@@ -79,8 +80,10 @@ export const timeBlocks = sqliteTable(
     /** First occurrence, epoch ms. */
     start: integer("start").notNull(),
     end: integer("end").notNull(),
-    /** Private note on a busy block; others only ever see "Busy". */
+    /** Private note on a busy block; others only ever see "Busy". On a skip, what was skipped (for its owner). */
     note: text("note"),
+    /** Skip only: the course skipped, or the id of the busy block skipped. With the times, picks one session out of overlapping ones. */
+    target: text("target"),
     /** Repeats every week (same local time) from `start`. */
     weekly: integer("weekly", { mode: "boolean" }).notNull().default(false),
     /** Weekly only: no occurrence starts at or after this instant. Null = no end. */

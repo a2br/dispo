@@ -50,6 +50,7 @@ const calendar = {
     title: "Block time",
     busy: "Busy",
     free: "Free",
+    skip: "Skipped",
     busyHint: "For plans your timetable doesn’t show: a job, sport, an appointment.",
     freeHint: "Clears anything scheduled then, like a class you’re skipping.",
     day: "Day",

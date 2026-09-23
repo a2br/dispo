@@ -92,9 +92,11 @@ async function migrate(client: Client) {
   );
   await client.execute("CREATE INDEX IF NOT EXISTS group_invites_user_idx ON group_invites(user_id)");
   await client.execute(
-    "CREATE TABLE IF NOT EXISTS time_blocks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, note TEXT, weekly INTEGER NOT NULL DEFAULT 0, until INTEGER, created_at INTEGER NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS time_blocks (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, start INTEGER NOT NULL, end INTEGER NOT NULL, note TEXT, target TEXT, weekly INTEGER NOT NULL DEFAULT 0, until INTEGER, created_at INTEGER NOT NULL)",
   );
   await client.execute("CREATE INDEX IF NOT EXISTS time_blocks_user_idx ON time_blocks(user_id)");
+  const tcols = await client.execute("PRAGMA table_info(time_blocks)");
+  if (!tcols.rows.some((r) => String(r.name) === "target")) await client.execute("ALTER TABLE time_blocks ADD COLUMN target TEXT");
   await client.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_share_code_idx ON users(share_code)");
   const gcols = await client.execute("PRAGMA table_info(saved_groups)");
   if (!gcols.rows.some((r) => String(r.name) === "invite_code"))

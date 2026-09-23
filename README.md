@@ -108,8 +108,9 @@ Week navigation is understated because most weeks repeat: "next" is a button, "p
 faint, "Today" only appears off-week.
 Time blocks sit on top of the timetable: tap a class in your own week to skip it (once or every
 week), or an empty hour / "Block time" to add busy time the feed doesn't have (a job, sport).
-They're stored by time, not by event, so they survive feed refreshes; later blocks win where they
-overlap. Every view reads events through `eventsFor`, which applies them, so Now, statuses, group
+A skip leaves out that session only (matched by its times and course), so a class overlapping it
+keeps you busy; a free block clears everything. They're stored by time, not by event id, so they
+survive feed refreshes; later blocks win where they overlap. Every view reads events through `eventsFor`, which applies them, so Now, statuses, group
 slots and share links all agree. Notes on busy blocks are private: others see "Busy".
 
 ## Stack

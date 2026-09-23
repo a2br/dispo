@@ -48,9 +48,14 @@ function withLanes(list: EventView[]): { e: EventView; lane: number; lanes: numb
   return out;
 }
 
+/** Time you cleared (a free block or a skipped session): drawn as an outline, not as something on. */
+function isCleared(e: EventView): e is EventView & { block: { kind: "free" | "skip" } } {
+  return e.block != null && e.block.kind !== "busy";
+}
+
 function colorStyle(e: EventView): React.CSSProperties {
   // Your free time: an outline where something was cleared, so it can be seen and undone.
-  if (e.block?.kind === "free")
+  if (isCleared(e))
     return { background: "color-mix(in oklab, var(--free) 6%, transparent)", borderColor: "var(--free)", borderStyle: "dashed", color: "var(--free)" };
   // Personal plans: hatched, so they read as busy without looking like a class.
   if (e.personal)
@@ -65,10 +70,10 @@ function colorStyle(e: EventView): React.CSSProperties {
   return { background: t.bg, borderColor: t.border, borderLeft: `3px solid ${t.base}`, color: t.text };
 }
 
-/** A block's name: the course, your note, or "Busy" / "Free" for blocks without one. */
+/** A block's name: the course, your note, "Busy" for a busy block without one, or "Free" / "Skipped". */
 function useLabel(): (e: EventView) => string {
   const t = useT();
-  return (e) => e.title || (e.block?.kind === "free" ? t.calendar.blocks.free : t.status.busy);
+  return (e) => (isCleared(e) ? t.calendar.blocks[e.block.kind] : e.title || t.status.busy);
 }
 
 function titleFor(e: EventView, label: string): string {
@@ -79,7 +84,11 @@ function titleFor(e: EventView, label: string): string {
 function BlockBody({ e, live }: { e: EventView; live?: boolean }) {
   const t = useT();
   const label = useLabel()(e);
-  const sub = e.masked ? "" : e.block ? (e.block.weekly ? t.calendar.blocks.weekly : "") : [t.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
+  const sub = e.masked
+    ? ""
+    : e.block
+      ? [e.block.kind === "skip" && e.title, e.block.weekly && t.calendar.blocks.weekly].filter(Boolean).join(" · ")
+      : [t.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
   return (
     <div className="ev-body">
       <div className="ev-head">
@@ -149,7 +158,7 @@ export function WeekView({ weekStart, events, todayIndex, now, masked, editable 
                 <span className={`text-[11px] uppercase tracking-wide ${isSel ? "opacity-80" : "text-muted"}`}>{fmtDayShort(dayMs, locale)}</span>
                 <span className={`text-base font-bold leading-none ${isToday && !isSel ? "text-accent-ink" : ""}`}>{fmtDayNum(dayMs)}</span>
                 <span className="flex gap-0.5 h-1.5">
-                  {list.filter((e) => e.block?.kind !== "free").slice(0, 4).map((e, k) => (
+                  {list.filter((e) => !isCleared(e)).slice(0, 4).map((e, k) => (
                     <span key={k} className="size-1.5 rounded-full" style={{ background: e.masked ? "var(--muted)" : e.personal ? "var(--foreground)" : toneFor(e.title).base }} />
                   ))}
                 </span>
@@ -324,7 +333,7 @@ function DayTimeline({
               }}
               title={titleFor(e, label(e))}
             >
-              <BlockBody e={e} live={live && e.block?.kind !== "free"} />
+              <BlockBody e={e} live={live && !isCleared(e)} />
             </Tag>
           );
         })}

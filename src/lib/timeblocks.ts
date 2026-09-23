@@ -7,7 +7,7 @@ import { addDays } from "./time";
 
 /**
  * An event as every view sees it: a timetable session (academic quarter applied, trimmed by free
- * blocks) or one of the person's own busy blocks. `personal` is set on the latter.
+ * blocks, minus skipped ones) or one of the person's own busy blocks. `personal` is set on the latter.
  */
 export type CalEvent = Event & { personal?: { blockId: string; note: string | null; weekly: boolean } };
 
@@ -39,8 +39,17 @@ function cut(e: CalEvent, o: { start: number; end: number }): CalEvent[] {
 }
 
 /**
+ * The session a skip leaves out: same times, and the same course (a class) or the same busy block.
+ * Whatever else overlaps it stays, so only the hours nothing else covers become free.
+ */
+function isSkipped(e: CalEvent, b: TimeBlock, o: Occurrence): boolean {
+  return e.start === o.start && e.end === o.end && (e.personal ? e.personal.blockId : e.course) === b.target;
+}
+
+/**
  * Timetable events with the person's blocks laid over them, in the order they were made: a free
- * block clears everything before it (sessions and older busy blocks), a busy block adds itself.
+ * block clears everything before it (sessions and older busy blocks), a skip removes one of them,
+ * a busy block adds itself.
  */
 export function applyTimeBlocks(events: Event[], blocks: TimeBlock[], from: number, to: number): CalEvent[] {
   let out: CalEvent[] = events.map((e) => ({ ...e, start: snapStart(e.start) }));
@@ -48,6 +57,7 @@ export function applyTimeBlocks(events: Event[], blocks: TimeBlock[], from: numb
   for (const b of [...blocks].sort((x, y) => x.createdAt - y.createdAt)) {
     for (const o of occurrences(b, from, to)) {
       if (b.kind === "free") out = out.flatMap((e) => cut(e, o));
+      else if (b.kind === "skip") out = out.filter((e) => !isSkipped(e, b, o));
       else
         out.push({
           id: -++n,
@@ -89,7 +99,8 @@ export async function listTimeBlocks(userId: string, now = Date.now()): Promise<
     .orderBy(asc(t.weekly), asc(t.start));
 }
 
-export type NewTimeBlock = { kind: TimeBlockKind; start: number; end: number; note?: string | null; weekly?: boolean; until?: number | null };
+/** `target` and `note` of a skip: see the schema. */
+export type NewTimeBlock = { kind: TimeBlockKind; start: number; end: number; note?: string | null; target?: string; weekly?: boolean; until?: number | null };
 
 /** False when the person already has too many blocks. Callers validate times. */
 export async function addTimeBlock(userId: string, b: NewTimeBlock): Promise<boolean> {
@@ -102,12 +113,19 @@ export async function addTimeBlock(userId: string, b: NewTimeBlock): Promise<boo
     kind: b.kind,
     start: b.start,
     end: b.end,
-    note: b.kind === "busy" ? b.note?.trim().slice(0, 80) || null : null,
+    note: b.kind === "free" ? null : b.note?.trim().slice(0, 80) || null,
+    target: b.kind === "skip" ? (b.target ?? null) : null,
     weekly: Boolean(b.weekly),
     until: b.weekly ? (b.until ?? null) : null,
     createdAt: Date.now(),
   });
   return true;
+}
+
+export async function getTimeBlock(userId: string, id: string): Promise<TimeBlock | null> {
+  await dbReady;
+  const [b] = await db.select().from(schema.timeBlocks).where(and(eq(schema.timeBlocks.userId, userId), eq(schema.timeBlocks.id, id))).limit(1);
+  return b ?? null;
 }
 
 export async function removeTimeBlock(userId: string, id: string): Promise<void> {

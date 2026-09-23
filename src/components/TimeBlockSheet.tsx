@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import { addTimeBlockAction, freeTimeAction, removeTimeBlockAction } from "@/app/actions";
+import { addTimeBlockAction, removeTimeBlockAction, skipAction } from "@/app/actions";
 import type { EventView } from "@/lib/present";
 import { button, input } from "@/lib/ui";
 import { dateInputValue, fmtDayLong, fmtDayMonth, fmtTime } from "@/lib/time";
@@ -141,8 +141,10 @@ function BlockActions({ e, onDone }: { e: EventView; onDone: () => void }) {
     onDone();
   });
   const block = e.block;
-  const title = block?.kind === "free" ? t.free : e.title || tt.status.busy;
-  const sub = block ? (block.weekly ? t.weekly : null) : [tt.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
+  const title = block && block.kind !== "busy" ? t[block.kind] : e.title || tt.status.busy;
+  const sub = block
+    ? [block.kind === "skip" && e.title, block.weekly && t.weekly].filter(Boolean).join(" · ")
+    : [tt.calendar.kinds[e.kind], e.rooms].filter(Boolean).join(" · ");
 
   return (
     <div className="space-y-4">
@@ -155,16 +157,16 @@ function BlockActions({ e, onDone }: { e: EventView; onDone: () => void }) {
       <div className="flex flex-col gap-2">
         {!block && (
           <>
-            <button type="button" disabled={pending} onClick={() => run(() => freeTimeAction(e.start, e.end, false))} className={button("primary", "md", "w-full")}>
+            <button type="button" disabled={pending} onClick={() => run(() => skipAction(e.start, e.end, false, { course: e.title }))} className={button("primary", "md", "w-full")}>
               {t.skipOnce}
             </button>
-            <button type="button" disabled={pending} onClick={() => run(() => freeTimeAction(e.start, e.end, true))} className={button("secondary", "md", "w-full")}>
+            <button type="button" disabled={pending} onClick={() => run(() => skipAction(e.start, e.end, true, { course: e.title }))} className={button("secondary", "md", "w-full")}>
               {t.skipWeekly}
             </button>
           </>
         )}
         {block?.kind === "busy" && block.weekly && (
-          <button type="button" disabled={pending} onClick={() => run(() => freeTimeAction(e.start, e.end, false))} className={button("secondary", "md", "w-full")}>
+          <button type="button" disabled={pending} onClick={() => run(() => skipAction(e.start, e.end, false, { blockId: block.id }))} className={button("secondary", "md", "w-full")}>
             {t.freeOnce}
           </button>
         )}

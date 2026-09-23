@@ -69,21 +69,24 @@ export function eventView(e: CalEvent, own = false): EventView {
   };
 }
 
-/** The owner's free blocks, drawn as outlines over the week so they can see and undo them. */
+/**
+ * The owner's free blocks and skipped sessions, drawn as outlines over the week so they can see and
+ * undo them. A skip's title is what was skipped.
+ */
 export function freeViews(occ: Occurrence[]): EventView[] {
   return occ
-    .filter((o) => o.block.kind === "free")
+    .filter((o) => o.block.kind !== "busy")
     .map((o, i) => ({
       id: -100_000 - i,
       start: o.start,
       end: o.end,
-      title: "",
+      title: o.block.kind === "skip" ? (o.block.note ?? "") : "",
       kind: "other" as Event["kind"],
       code: null,
       rooms: null,
       teacher: null,
       masked: false,
-      block: { id: o.block.id, kind: "free" as const, weekly: o.block.weekly },
+      block: { id: o.block.id, kind: o.block.kind, weekly: o.block.weekly },
     }));
 }
 
