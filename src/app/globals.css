@@ -6,6 +6,7 @@
  * are generic; the EPFL logo is deliberately not used.
  */
 :root {
+  color-scheme: light dark; /* native radios, checkboxes and date pickers follow the theme */
   --background: #ffffff;
   --surface: #ffffff;
   --foreground: #212121; /* Elements $black */

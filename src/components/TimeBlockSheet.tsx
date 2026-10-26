@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { addTimeBlockAction, removeTimeBlockAction, skipAction } from "@/app/actions";
 import type { EventView } from "@/lib/present";
-import { button, input } from "@/lib/ui";
+import { button, check, iconButton, input, segment, segmented } from "@/lib/ui";
 import { dateInputValue, fmtDayLong, fmtDayMonth, fmtTime } from "@/lib/time";
 import { useLocale, useT } from "@/i18n/client";
 import { CloseIcon } from "./Icons";
@@ -34,7 +34,7 @@ export function TimeBlockSheet({ target, onClose }: { target: SheetTarget; onClo
       onClick={(ev) => ev.target === ev.currentTarget && onClose()}
     >
       <div className="relative w-full max-w-md bg-surface border border-line p-5 space-y-4 animate-in">
-        <button type="button" onClick={onClose} aria-label={t.cancel} className="absolute top-3 right-3 size-8 grid place-items-center text-muted hover:text-foreground">
+        <button type="button" onClick={onClose} aria-label={t.cancel} className={iconButton("quiet", "sm", "absolute top-3 right-3")}>
           <CloseIcon />
         </button>
         {target.type === "new" ? <NewBlockForm start={target.start} end={target.end} onDone={onClose} /> : <BlockActions e={target.e} onDone={onClose} />}
@@ -73,9 +73,9 @@ function NewBlockForm({ start, end, onDone }: { start: number; end: number; onDo
   return (
     <form onSubmit={submit} className="space-y-4">
       <h2 id="block-sheet-title" className="text-xl font-bold tracking-tight pr-8">{t.title}</h2>
-      <div className="grid grid-cols-2 gap-1 p-1 bg-subtle border border-line rounded-sm" role="radiogroup">
+      <div className={segmented()} role="radiogroup">
         {(["busy", "free"] as const).map((k) => (
-          <label key={k} className={`h-8 grid place-items-center rounded-sm text-sm font-bold cursor-pointer ${kind === k ? "bg-surface border border-line-strong" : "text-muted"}`}>
+          <label key={k} className={segment(kind === k, "md")}>
             <input type="radio" name="kind" value={k} checked={kind === k} onChange={() => setKind(k)} className="sr-only" />
             {t[k]}
           </label>
@@ -110,7 +110,7 @@ function NewBlockForm({ start, end, onDone }: { start: number; end: number; onDo
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 min-h-10">
         <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-          <input type="checkbox" name="weekly" checked={weekly} onChange={(ev) => setWeekly(ev.target.checked)} className="size-4 accent-[var(--accent)]" />
+          <input type="checkbox" name="weekly" checked={weekly} onChange={(ev) => setWeekly(ev.target.checked)} className={check} />
           {t.weekly}
         </label>
         {weekly && (

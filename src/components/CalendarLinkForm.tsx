@@ -8,6 +8,7 @@ import { button, input } from "@/lib/ui";
 /**
  * Paste-first: on a phone the link is already on the clipboard (copied from IS-Academia),
  * so one tap reads it and submits. The text field stays as a fallback.
+ * `compact` is the "replace link" form inside Me's calendar card: no paste button, `sm` like the rest of that card.
  */
 export function CalendarLinkForm({ stay = false, compact = false, next }: { stay?: boolean; compact?: boolean; next?: string }) {
   const t = useT().setup.form;
@@ -15,6 +16,7 @@ export function CalendarLinkForm({ stay = false, compact = false, next }: { stay
   const [value, setValue] = useState("");
   const [clipError, setClipError] = useState<string | null>(null);
   const form = useRef<HTMLFormElement>(null);
+  const size = compact ? "sm" : "md";
 
   async function pasteAndSubmit() {
     setClipError(null);
@@ -53,9 +55,9 @@ export function CalendarLinkForm({ stay = false, compact = false, next }: { stay
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={compact ? t.placeholderReplace : t.placeholder}
-          className={input("md", "flex-1 w-auto min-w-0 font-mono")}
+          className={input(size, "flex-1 w-auto min-w-0 font-mono")}
         />
-        <button type="submit" disabled={pending || !value} className={button(compact ? "primary" : "secondary", "md")}>
+        <button type="submit" disabled={pending || !value} className={button("secondary", size)}>
           {compact ? t.replace : t.connect}
         </button>
       </div>

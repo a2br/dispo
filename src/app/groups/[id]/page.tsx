@@ -16,6 +16,7 @@ import { ConfirmAction } from "@/components/ConfirmAction";
 import { PeopleAdder } from "@/components/PeopleAdder";
 import { Avatar } from "@/components/Avatar";
 import { PersonRow } from "@/components/PersonRow";
+import { ButtonRow, SettingsDisclosure, SettingsRow, SettingsSection } from "@/components/Settings";
 import { ShareLinkButton } from "@/components/ShareLinkButton";
 import { StarButton } from "@/components/StarButton";
 import { getLocale, getT } from "@/i18n/server";
@@ -134,25 +135,25 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
         </section>
       )}
 
-      <details className={card}>
-        <summary className="px-4 py-3 font-bold cursor-pointer">{tg.addPeople}</summary>
-        <form action={addMembersAction} className="px-4 pb-4 space-y-3">
-          <input type="hidden" name="groupId" value={g.id} />
-          <PeopleAdder
-            people={addable.map((u) => ({ id: u.id, name: u.name }))}
-            directIds={conns.accepted.map((u) => u.id)}
-            excludeIds={[...g.people.map((p) => p.id), ...invited.map((p) => p.id)]}
-          />
-          <p className="text-xs text-muted">{tg.addHint}</p>
-          <button type="submit" className={button("secondary")}>
-            {tg.addSubmit}
-          </button>
-        </form>
-      </details>
+      <div className={card}>
+        <SettingsDisclosure title={tg.addPeople}>
+          <form action={addMembersAction} className="space-y-3">
+            <input type="hidden" name="groupId" value={g.id} />
+            <PeopleAdder
+              people={addable.map((u) => ({ id: u.id, name: u.name }))}
+              directIds={conns.accepted.map((u) => u.id)}
+              excludeIds={[...g.people.map((p) => p.id), ...invited.map((p) => p.id)]}
+            />
+            <p className="text-xs text-muted">{tg.addHint}</p>
+            <button type="submit" className={button("secondary")}>
+              {tg.addSubmit}
+            </button>
+          </form>
+        </SettingsDisclosure>
+      </div>
 
-      <section className="space-y-2">
-        <h2 className={sectionTitle}>{tg.settings}</h2>
-        <div className={`${card} p-4 space-y-2`}>
+      <SettingsSection title={tg.settings}>
+        <SettingsRow>
           <form action={renameGroupAction} className="flex gap-2">
             <input type="hidden" name="groupId" value={g.id} />
             <input name="name" required maxLength={60} defaultValue={g.name} aria-label={tg.nameLabel} autoComplete="off" data-1p-ignore data-lpignore="true" className={input("sm", "flex-1 w-auto min-w-0")} />
@@ -160,12 +161,14 @@ export default async function GroupPage({ params, searchParams }: PageProps<"/gr
               {tg.rename}
             </button>
           </form>
-          <div className="flex flex-wrap gap-2">
+        </SettingsRow>
+        <SettingsRow>
+          <ButtonRow>
             <ConfirmAction fields={{ groupId: g.id }} action={leaveGroupAction} label={tg.leave} question={tg.leaveQuestion} confirmLabel={tg.leaveConfirm} className={button("secondary")} />
             {g.isOwner && <ConfirmAction fields={{ groupId: g.id }} action={deleteGroupAction} label={tg.delete} question={tg.deleteQuestion} confirmLabel={tg.deleteConfirm} className={button("danger")} />}
-          </div>
-        </div>
-      </section>
+          </ButtonRow>
+        </SettingsRow>
+      </SettingsSection>
     </main>
   );
 }

@@ -5,6 +5,7 @@ import { busyRuns, commonFree, dayWindow, hoursSpan, type Interval, type MemberD
 import { addDays, fmtDayNum, fmtDayShort, fmtTime, localParts } from "@/lib/time";
 import { useLocale, useT } from "@/i18n/client";
 import { LOCALE_TAGS } from "@/i18n/config";
+import { sectionTitle } from "@/lib/ui";
 import { Avatar } from "./Avatar";
 
 const DAYS = 5;
@@ -64,7 +65,7 @@ export function GroupWeek({ weekStart, now, todayIndex, members }: Props) {
       {/* Left on wide screens: the week's common slots + day tabs */}
       <div className="flex flex-col gap-2 shrink-0 lg:gap-4 lg:min-h-0">
         <section className="hidden lg:block">
-          <h2 className="text-sm font-bold text-muted uppercase tracking-wide mb-2">{tc.everyoneFree}</h2>
+          <h2 className={`${sectionTitle} mb-2`}>{tc.everyoneFree}</h2>
           {!canCompare ? (
             <p className="text-sm text-muted">{tc.needTwo}</p>
           ) : !anyFree ? (

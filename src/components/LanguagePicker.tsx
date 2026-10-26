@@ -1,6 +1,6 @@
 import { setLanguage } from "@/app/actions";
 import { LOCALE_NAMES, LOCALES, type Locale } from "@/i18n/config";
-import { button } from "@/lib/ui";
+import { segment, segmented } from "@/lib/ui";
 
 /**
  * English / Français / Deutsch. Works without JavaScript: each language is a submit button.
@@ -18,9 +18,9 @@ export function LanguagePicker({ current, quiet = false }: { current: Locale; qu
       </form>
     );
   return (
-    <form action={setLanguage} className="grid grid-cols-3 gap-2">
+    <form action={setLanguage} className={segmented()}>
       {LOCALES.map((l) => (
-        <button key={l} name="locale" value={l} lang={l} aria-pressed={l === current} className={button(l === current ? "dark" : "secondary", "md")}>
+        <button key={l} name="locale" value={l} lang={l} aria-pressed={l === current} className={segment(l === current)}>
           {LOCALE_NAMES[l]}
         </button>
       ))}

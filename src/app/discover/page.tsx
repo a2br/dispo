@@ -14,7 +14,7 @@ import { ConnectButton } from "@/components/ConnectButton";
 import { CourseChip, CourseChips } from "@/components/CourseChips";
 import { PersonRow } from "@/components/PersonRow";
 import { ReachLinks } from "@/components/ReachLinks";
-import { button } from "@/lib/ui";
+import { button, sectionTitle } from "@/lib/ui";
 import { getT } from "@/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -75,7 +75,7 @@ export default async function DiscoverPage() {
       {header}
 
       <section>
-        <h2 className="text-sm font-bold text-muted uppercase tracking-wide mb-2">{t.discover.people}</h2>
+        <h2 className={`${sectionTitle} mb-2`}>{t.discover.people}</h2>
         {strangers.length === 0 ? (
           <div className="border border-line px-4 py-8 text-center text-muted text-sm">{t.discover.nobody}</div>
         ) : (
@@ -101,7 +101,7 @@ export default async function DiscoverPage() {
       </section>
 
       <section>
-        <h2 className="text-sm font-bold text-muted uppercase tracking-wide mb-2">{t.discover.byCourse}</h2>
+        <h2 className={`${sectionTitle} mb-2`}>{t.discover.byCourse}</h2>
         <ul className="border border-line divide-y divide-line">
           {perCourse.map(({ course, count }) => (
             <li key={course.key}>

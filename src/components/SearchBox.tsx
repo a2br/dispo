@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PersonView } from "@/lib/present";
 import type { DirectoryPerson } from "@/lib/directory";
 import { Avatar } from "./Avatar";
-import { input } from "@/lib/ui";
+import { card, input } from "@/lib/ui";
 import { InviteButton } from "./InviteButton";
 import { ExternalLink } from "./ExternalLink";
 import { PersonRow } from "./PersonRow";
@@ -76,11 +76,11 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder }: { autoF
       {term.length >= 2 && (
         <div className="mt-3 space-y-3 animate-in">
           {results === null ? (
-            <p className="rounded-2xl bg-surface border border-line px-4 py-6 text-center text-sm text-muted">{t.people.search.searching}</p>
+            <p className={`${card} px-4 py-6 text-center text-sm text-muted`}>{t.people.search.searching}</p>
           ) : (
             <>
               {results.length > 0 && (
-                <ul className="rounded-2xl bg-surface border border-line divide-y divide-line overflow-hidden">
+                <ul className={`${card} divide-y divide-line overflow-hidden`}>
                   {results.map((p) => (
                     <PersonRow key={p.id} person={p} />
                   ))}
@@ -88,8 +88,8 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder }: { autoF
               )}
               {directory.length > 0 && (
                 <section>
-                  <h3 className="text-xs font-semibold text-muted uppercase tracking-wide mb-1.5 px-1">{t.people.search.notOnDispo}</h3>
-                  <ul className="rounded-2xl bg-surface border border-line divide-y divide-line overflow-hidden">
+                  <h3 className="text-xs font-bold text-muted uppercase tracking-wide mb-1.5 px-1">{t.people.search.notOnDispo}</h3>
+                  <ul className={`${card} divide-y divide-line overflow-hidden`}>
                     {directory.map((d) => (
                       <li key={d.sciper} className="flex items-center gap-3 px-4 py-3">
                         <div className="opacity-60">
@@ -114,7 +114,7 @@ export function SearchBox({ autoFocus = false, inviteUrl, placeholder }: { autoF
                 </section>
               )}
               {results.length === 0 && directory.length === 0 && (
-                <p className="rounded-2xl bg-surface border border-line px-4 py-6 text-center text-sm text-muted">
+                <p className={`${card} px-4 py-6 text-center text-sm text-muted`}>
                   {loading ? t.people.search.searching : term.length < 3 ? t.people.search.typeMore : t.people.search.nobody}
                 </p>
               )}
