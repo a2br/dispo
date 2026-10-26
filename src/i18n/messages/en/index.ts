@@ -14,8 +14,9 @@ import auth from "./auth";
 import pages from "./pages";
 import share from "./share";
 import og from "./og";
+import oauth from "./oauth";
 
 /** English is the source: every other language has exactly these keys (checked by `Messages`). */
-export const en = { common, nav, status, meta, lang, now, people, calendar, groups, me, setup, discover, auth, pages, share, og };
+export const en = { common, nav, status, meta, lang, now, people, calendar, groups, me, setup, discover, auth, pages, share, og, oauth };
 
 export type Messages = typeof en;

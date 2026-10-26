@@ -71,6 +71,28 @@ have none of their own.
   free" button (top) and a sign-in card (bottom); signing up through it connects them with you.
   "Reset link" issues a new code, which kills the old one.
 
+## Ask Claude (MCP)
+
+`/mcp` is a remote MCP server, so Claude (claude.ai, the desktop and phone apps, Claude Code) can
+answer "who's free?" or "what do I have tomorrow?". Add `https://<your dispo>/mcp` as a custom
+connector (claude.ai → Settings → Connectors), or `claude mcp add --transport http dispo <url>`.
+Connecting sends you to dispo: sign in with EPFL Google if needed, then Allow (`/oauth/consent`).
+
+- Read-only, and always as you: tools go through the app's access rules (settings, give to get,
+  group-mates as free/busy), so Claude never sees what the app wouldn't show you. Notes on busy
+  blocks stay yours, course names only appear where you'd see them.
+- Tools (`src/lib/mcp.ts`): `whos_free` (now or at a time; your connections and groups by
+  default), `my_schedule`, `schedule_of`, `find_time` (everyone free, day by day) and `people`.
+  People are named by first name, full name, email or group name; ambiguous names come back
+  with the candidates. Answers are plain English text in Zurich time, with classes at their
+  listed times (13:15).
+- OAuth 2.1 with dynamic client registration and PKCE (`src/lib/oauth.ts`, `/oauth/*`,
+  `/.well-known/*`). Stateless like the session: clients, codes and tokens are JWTs signed with a
+  key derived from `AUTH_SECRET` (so a token never passes as a session cookie, or the reverse).
+  Access tokens last an hour, refresh tokens 30 days from their last use. Rotating
+  `AUTH_SECRET` signs every client out. Sign-ins only go back to claude.ai, claude.com or
+  localhost (`MCP_REDIRECT_HOSTS` to change).
+
 ## Home ("Now")
 
 What people open the app for: who can I see, and when? An "Invite friends" card sits at the top
@@ -129,10 +151,11 @@ src/
   app/api/auth    google, callback, signout, dev (local only)
   app/api/cron    refresh  — re-fetch stale feeds, protected by CRON_SECRET
   app/api/search  name search (JSON)
+  app/mcp         MCP server for Claude; app/oauth + app/.well-known its sign-in
   components/     AppNav (sidebar / bottom bar), WeekView (day timeline on phones, week grid on md+),
                   GroupWeek, GroupPicker, TodayStrip, SearchBox, …
   lib/            auth, calendar (ingest/refresh/queries), blocks (academic quarter), timeblocks
-                  (skipped classes / own busy time), groupcalc, groups,
+                  (skipped classes / own busy time), groupcalc, groups, mcp + oauth,
                   classmates (flagged), features, ics, access, time
   db/             schema + client (tables auto-created on first use)
 scripts/seed-dev.ts   fake users sharing your feed, for local testing
